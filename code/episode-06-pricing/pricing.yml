@@ -1,0 +1,94 @@
+name: pricing-demo
+subdomain: pricing-demo
+title: 'Pricing Demo'
+description: 'Per-call, per-token, volume-tier, and variant pricing in one spec.'
+category: ai_ml
+version: v1
+
+routing:
+  type: respond
+
+operator:
+  currencies:
+    usd: ['USDC', 'USDT', 'CASH']
+  network: localnet
+  fee_payer: true
+
+# `per_agent` gives each caller their own counter so volume tiers advance
+# per wallet rather than across the whole gateway.
+accounting: per_agent
+
+endpoints:
+  # 1) Simplest case — flat price per request.
+  - method: POST
+    path: 'v1/search'
+    resource: 'search'
+    description: 'Keyword search. $0.01 per request.'
+    metering:
+      dimensions:
+        - direction: usage
+          unit: requests
+          scale: 1
+          tiers:
+            - price_usd: 0.01
+
+  # 2) LLM-style billing — input and output tokens priced separately.
+  #    scale 1_000_000 means "price_usd per one million tokens".
+  - method: POST
+    path: 'v1/generate'
+    resource: 'generate'
+    description: 'Text generation. $0.50/1M input tokens, $1.50/1M output tokens.'
+    metering:
+      dimensions:
+        - direction: input
+          unit: tokens
+          scale: 1000000
+          tiers:
+            - price_usd: 0.50
+        - direction: output
+          unit: tokens
+          scale: 1000000
+          tiers:
+            - price_usd: 1.50
+
+  # 3) Volume discount — the first matching tier applies; the last tier
+  #    omits `up_to`, so it covers everything above the previous ceilings.
+  - method: POST
+    path: 'v1/enrich'
+    resource: 'enrich'
+    description: 'Record enrichment with volume discounts.'
+    metering:
+      dimensions:
+        - direction: usage
+          unit: requests
+          scale: 1
+          tiers:
+            - up_to: 1000
+              price_usd: 0.01
+            - up_to: 10000
+              price_usd: 0.005
+            - price_usd: 0.002
+
+  # 4) Variant pricing — a request field (here `model`) selects the price.
+  - method: POST
+    path: 'v1/infer'
+    resource: 'infer'
+    description: 'Inference. fast=$0.01, pro=$0.10 per request.'
+    metering:
+      variants:
+        - param: model
+          value: fast
+          dimensions:
+            - direction: usage
+              unit: requests
+              scale: 1
+              tiers:
+                - price_usd: 0.01
+        - param: model
+          value: pro
+          dimensions:
+            - direction: usage
+              unit: requests
+              scale: 1
+              tiers:
+                - price_usd: 0.10

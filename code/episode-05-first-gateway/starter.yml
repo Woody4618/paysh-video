@@ -1,0 +1,38 @@
+name: starter
+subdomain: starter
+title: 'Starter Provider'
+description: 'Smallest complete spec — one free endpoint, one metered endpoint.'
+category: data
+version: v1
+
+# `respond` returns 200 directly after payment verification — no upstream
+# needed. Perfect for a first gateway demo.
+routing:
+  type: respond
+
+operator:
+  currencies:
+    # Prefer all three when supported (per skills/pay/references/monetize-api.md).
+    usd: ['USDC', 'USDT', 'CASH']
+  # Sandbox mode forces localnet regardless of this value.
+  network: localnet
+  # Operator co-signs as fee-payer so the caller needs no SOL.
+  fee_payer: true
+
+endpoints:
+  - method: GET
+    path: 'v1/health'
+    resource: 'health'
+    description: 'Health check (free — no metering block).'
+
+  - method: GET
+    path: 'v1/reports/usage'
+    resource: 'reports'
+    description: 'Usage report. $0.01 per verified request.'
+    metering:
+      dimensions:
+        - direction: usage
+          unit: requests
+          scale: 1
+          tiers:
+            - price_usd: 0.01
