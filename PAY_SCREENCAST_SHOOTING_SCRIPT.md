@@ -49,13 +49,11 @@ code for the producer-track episodes lives in `code/episode-NN-*/`.
 
 ### Scene 1 — Cold open (0:00–0:15)
 
-You all know the error code 404! Page not found. But there is a new Error code that has been in the HTTP specs for a long time. Its 402 - Payment required. And it is used by many services already. For example, you can already pay for Google Cloud services — translation, BigQuery, Vision — through 402 requests, with stablecoins, no Google account or API key required. Normally you would need a complicated setup to pay for these services. But with the new Tool called Pay.sh it becomes super easy and even your AI agents can pay for almost anything on the internet now.
-In the video series I will explain you how to use pay.sh and in the end you and your agents will be able to pay for services and you will be able to setup and publish your own paid APIs to the world.
+What if your AI agent could order you a case of water while you're stuck in a meeting? Well, now it can. You already know 404: Page Not Found. But there's another HTTP status code that's been hiding in the spec for years: 402: Payment Required. Today, you can already pay for services like Google Cloud Translation, BigQuery, and Vision with simple 402 requests using stablecoins—no Google account, API keys, or billing setup required. Until now, integrating payments into apps or AI agents has been difficult. But with pay.sh, it's as easy as making an HTTP request. Your apps—and even your AI agents—can pay for APIs and services across the internet. In this series, I'll show you how to install pay.sh, make your first payment request, and even publish your own paid APIs. Let's get started.
 
 ### Scene 2 — Install (0:15–0:55)
 
-- 🎙️ "Pay ships as a single binary, and you can install it with either Homebrew
-  or npm, whichever you already use. Once it's installed, let's confirm it landed."
+- 🎙️ "You can find the docs under pay.sh/docs. Pay ships as a single binary, and you can install it with either Homebrew or npm, whichever you already use. Once it's installed, let's confirm it landed."
 - 🖥️ Lower-third: `brew install pay`
 - ⌨️ You run:
 
@@ -69,12 +67,12 @@ pay --version
 
 ### Scene 3 — The 402 wall (0:55–1:25)
 
-- 🎙️ "Let me show you the problem first. If I make a plain curl request to a
+- 🎙️ "Let me show you the payment requirement first. If I make a plain curl request to a
   paywalled endpoint, the server answers with a 402."
 - ⌨️ You run:
 
 ```sh
-curl -i https://debugger.pay.sh/mpp/quote/AAPL
+curl https://debugger.pay.sh/mpp/quote/AAPL
 ```
 
 - 🖥️ Highlight the `HTTP/1.1 402 Payment Required` line.
@@ -89,17 +87,18 @@ curl -i https://debugger.pay.sh/mpp/quote/AAPL
 
 ```sh
 pay --sandbox curl https://debugger.pay.sh/mpp/quote/AAPL
+pay curl https://debugger.pay.sh/mpp/quote/AAPL
 ```
 
-- 🎙️ (If you enabled `auth_required`) "I approve the spend with Touch ID, and the
-  request comes back as a 200 with the quote I asked for."
+I have setup may wallet already and told it to require a touch id for spending. Very usefull for later when we pass it to our agents.
 
 ### Scene 5 — Takeaway (2:10–2:30)
 
 - 🎙️ "And that's the whole thing. You've installed pay and made a paid HTTP
   request, without ever creating a developer account or signing up anywhere. My
   advice is to always start on sandbox like this, and only switch to real funds
-  once you've seen the flow work end to end."
+  once you've seen the flow work end to end. We will setup a mainnet wallet in episode 4. There is plenty of interesting services already available in the catalog. I will show you how to discover them and how to pay for them. The real power comes when you let your claude or codex agents use these services. But lets first have a look on all the different ways you can use pay.sh and how it works in the next episode."
+
 - 🖥️ Outro card: `brew install pay` + `pay.sh/docs`.
 
 ### Description bullets
@@ -116,6 +115,18 @@ pay --sandbox curl https://debugger.pay.sh/mpp/quote/AAPL
 - `pay setup` is for **mainnet** wallet creation + MCP config. Mainnet payment
   commands auto-run it on first use. Don't imply setup is required to follow
   along on sandbox.
+
+---
+
+---
+
+---
+
+---
+
+---
+
+---
 
 ---
 
@@ -140,17 +151,23 @@ pay --sandbox curl https://debugger.pay.sh/mpp/quote/AAPL
 pay --sandbox curl https://debugger.pay.sh/mpp/quote/AAPL
 ```
 
-- 🎙️ "Everything you type after `curl` gets forwarded to curl exactly as written,
-  so you don't have to escape anything differently just because pay is in front."
-
 ### Scene 3 — wget and http (0:50–1:20)
 
 - ⌨️ You run:
 
 ```sh
-pay --sandbox http POST https://debugger.pay.sh/mpp/echo query=test
-pay --sandbox wget https://debugger.pay.sh/mpp/quote/AAPL
+pay --sandbox http GET https://debugger.pay.sh/mpp/quote/AAPL
+pay --sandbox wget -qO- https://debugger.pay.sh/mpp/quote/AAPL
 ```
+
+- 🎙️ "Everything you type after `curl` or `wget` or "http" gets forwarded to curl exactly as written,
+  so you don't have to escape anything differently just because pay is in front."
+
+- 🎙️ "Same paid endpoint, three different clients. HTTPie pretty-prints the headers
+  and the JSON for you, and for wget the only difference is the `-qO-` flag —
+  that's wget's own flag for printing the body to the terminal instead of saving
+  it to a file. Pay forwards it straight through, which is exactly the point: pay
+  never touches your tool's flags, it just handles the payment around them."
 
 ### Scene 4 — Built-in fetch (1:20–1:45)
 
@@ -166,7 +183,7 @@ pay --sandbox fetch https://debugger.pay.sh/mpp/quote/AAPL
 ### Scene 5 — Takeaway (1:45–2:00)
 
 - 🎙️ "So you can drop pay in front of almost any workflow that speaks HTTP without
-  rewriting any of it. Next, we'll let AI agents do the same thing."
+  rewriting any of it. Before we put pay in front of our claude agent, lets have a look what services are available in the catalogue and how to discover them. "
 
 ### Description bullets
 
@@ -178,6 +195,22 @@ pay --sandbox fetch https://debugger.pay.sh/mpp/quote/AAPL
 ### Accuracy notes
 
 - The pass-through list is: `curl`, `wget`, `http`, `claude`, `codex`, `whoami`.
+- **`http` = HTTPie, a separate install (verified 2026-06-25):** pass-through just
+  shells out to the named binary, so `pay http …` fails with
+  `Command not found: http` unless HTTPie is on `PATH`. Install it first with
+  `brew install httpie` (provides `/opt/homebrew/bin/http`). On a clean machine,
+  pre-install before recording or cut the `http` beat. `curl` and `wget` ship with
+  macOS; `http` does not.
+- **Don't use `/mpp/echo` (verified 2026-06-25):** that endpoint returns
+  `403 PERMISSION_DENIED — Missing API key or access token`, not a clean paid 200.
+  The reliable demo endpoint is `GET /mpp/quote/AAPL`, which returns
+  `{"symbol":"AAPL","price":"…","source":"mpp-demo"}`. Use it for all three clients.
+- **wget needs `-qO-` on camera (verified 2026-06-25):** bare `pay --sandbox wget
+<url>` succeeds (200 + `Payment-Receipt` header), but wget's _default_ is to save
+  the body to a file (e.g. `AAPL`, then `AAPL.1` on re-run) rather than print it —
+  so the terminal shows a download log, not the quote. `-q` silences the log and
+  `-O-` writes the body to stdout, making it read like curl. This is not a pay bug;
+  pay forwards the flags verbatim. Good moment to reinforce the pass-through point.
 - `pay fetch` is **not** a pass-through — it's pay's own HTTP client. Keep that
   distinction; the planning doc's "pay fetch when a tool isn't in the list" framing
   is correct.
@@ -186,9 +219,17 @@ pay --sandbox fetch https://debugger.pay.sh/mpp/quote/AAPL
 
 ---
 
+---
+
+---
+
+---
+
+---
+
 ## Episode 3 — Discovering Paid APIs in the Catalog
 
-**Duration:** 2:30
+**Duration:** 3:00 (was 2:30 — added the real mainnet paid call + audio playback)
 **Companion doc:** <https://pay.sh/docs/pay-for-apis/discover-providers>
 **CLI reference:** <https://pay.sh/docs/toolchain/commands/agents>
 
@@ -227,26 +268,39 @@ pay skills endpoints solana-foundation/google/texttospeech text
   the resource tag is the second word after the service (`voices` / `text`), not
   a project ID.
 
-### Scene 4 — Call it (1:45–2:10)
+### Scene 4 — Confirm the provider, free (1:45–2:05)
 
-- 🎙️ "Now I can copy the gateway URL straight from the catalog and call it, and
-  the payment is handled automatically."
+- 🎙️ "Before I pay anything, I'll hit two free endpoints to confirm I'm talking to
+  the right gateway. The `openapi.json` is the gateway describing itself, and the
+  `voices` endpoint lists what it can do — neither one costs a cent, so they run
+  fine on the sandbox."
 - ⌨️ You run:
 
 ```sh
 # Gateway URL comes verbatim from the catalog entry above.
 pay --sandbox curl https://texttospeech.google.gateway-402.com/openapi.json
+pay --sandbox curl https://texttospeech.google.gateway-402.com/v1/voices
 ```
 
-- 🎙️ "This `openapi.json` is the gateway describing itself, which confirms I'm
-  hitting the right provider. From here I call the priced `text` endpoint exactly
-  the same way, and pay settles the payment for me."
+### Scene 5 — Make the real paid call (2:05–2:45)
 
-### Scene 5 — Takeaway (2:10–2:30)
+- 🎙️ "Now the real thing. The synthesize endpoint is paid, and this gateway settles
+  on mainnet — so I drop the sandbox flag and let it use my real wallet. Watch the
+  Touch ID prompt: that's me approving a real, sub-penny stablecoin payment."
+- 🖥️ Lower-third: `pay --mainnet curl … /v1/text:synthesize`
+- ⌨️ You run:
 
-- 🎙️ "So you can find a working paid API for almost any task in well under a
-  minute. One thing to keep in mind: the catalog is your trust boundary, so
-  always check the gateway URL against the listing before you paste it anywhere."
+```sh
+pay --mainnet curl -X POST https://texttospeech.google.gateway-402.com/v1/text:synthesize \
+  -H 'content-type: application/json' \
+  -d '{
+    "input": {"text": "Germany will win the world cup this year."},
+    "voice": {"languageCode": "en-US", "ssmlGender": "NEUTRAL"},
+    "audioConfig": {"audioEncoding": "MP3"}
+  }'
+```
+
+- 🎙️ "So here we can see now that we get the Response back in base64. We could now go ahead and decode it and play it back. But I have a better idea. Lets use a claude agent to do all of that for us. Discover the service, pay for it, and play the audio back for us. "
 
 ### Description bullets
 
@@ -270,6 +324,18 @@ pay --sandbox curl https://texttospeech.google.gateway-402.com/openapi.json
   `pay skills endpoints solana-foundation/google/texttospeech projects` fails with
   `No endpoints found for resource projects` — `projects` is an empty OpenAPI tag
   with no endpoints attached. Always read the resource name off the search output.
+- **The paid call is MAINNET-ONLY (verified 2026-06-26):** the Google gateways
+  (texttospeech, language, speech, places, bigquery) only offer **mainnet** payment
+  challenges. `pay --sandbox curl …` on a _paid_ endpoint fails with
+  `No MPP challenge matched the active network filter (active: localnet, offered:
+mainnet)`. Only the free endpoints (`/openapi.json`, `GET /v1/voices`) succeed on
+  sandbox. So Scene 4 confirms the provider for free on sandbox, and Scene 5 does
+  the real paid call on `--mainnet` (which also gives us the Touch ID moment).
+- **Pricing + cost (verified 2026-06-26):** the decoded 402 reports
+  `$30 per 1,000,000 characters`. The Scene 5 demo string is ~57 chars ≈ **$0.0017**
+  — trivial. You need a funded mainnet account (the `auth_required: true`
+  keychain account → Touch ID). Response is JSON with base64 `audioContent`; decode
+  with the Python one-liner and play with `afplay` (macOS built-in).
 - **Pinned demo (verified live 2026-06-25):** `solana-foundation/google/texttospeech`,
   gateway `https://texttospeech.google.gateway-402.com` (serves `/openapi.json`;
   resources `voices` = free `GET v1/voices`, `text` = paid `POST v1/text:synthesize`).
@@ -283,6 +349,14 @@ pay --sandbox curl https://texttospeech.google.gateway-402.com/openapi.json
 
 ---
 
+---
+
+---
+
+---
+
+---
+
 ## Episode 4 — Pay from Claude, Codex, and the Claude Desktop App
 
 **Duration:** 4:00 (was 3:30 — added the real wallet-setup beat in Scene 2)
@@ -292,7 +366,8 @@ pay --sandbox curl https://texttospeech.google.gateway-402.com/openapi.json
 
 ### Scene 1 — Cold open (0:00–0:20)
 
-- 🎙️ "Wherever you talk to Claude — terminal, desktop, or your IDE — that
+- 🎙️ "Now we come to the real power of pay.sh. Combining it with Large language models like Claude or Codex.
+  Wherever you talk to Claude — terminal, desktop, or your IDE — that
   conversation can now pay for live services. Not just coding: a stock quote, a
   weather forecast, an image gen, anything in the catalog. First we'll set up a
   real wallet, then watch one install wire it into every Claude surface on your
@@ -393,7 +468,7 @@ pay --sandbox codex
 - The agent CLIs are launched as `pay --sandbox claude` / `pay --sandbox codex`
   (network flag before the subcommand).
 - **`pay setup` vs `pay setup --update` (important — these are different):**
-  bare `pay setup` *creates* a keypair, stores it in the OS keychain (Touch ID),
+  bare `pay setup` _creates_ a keypair, stores it in the OS keychain (Touch ID),
   and ends by launching `pay topup` to fund it. `--update` only reinstalls MCP
   configs / the agent skill and does **not** create or fund a wallet. This is the
   only episode that shows real wallet creation end-to-end; Episodes 1–3 and the
@@ -401,6 +476,14 @@ pay --sandbox codex
   assumes this account already exists.
 - On mainnet, payment commands auto-run `pay setup` on first use if no mainnet
   account is found — so Scene 2 is making that implicit step explicit.
+
+---
+
+---
+
+---
+
+---
 
 ---
 
@@ -462,7 +545,7 @@ pay --sandbox server start starter.yml
 ```
 
 - 🎙️ "So you can stand up a working paid gateway with one command, and watch the
-  entire protocol exchange happen end to end."
+  entire protocol exchange happen end to end. In the next chapter we will look into how you can price your endpoints. "
 
 ### Description bullets
 
@@ -478,6 +561,14 @@ pay --sandbox server start starter.yml
   `server start` — you do **not** pass `--debugger` on the server in sandbox.
 - The flow shown is **pull mode** (client signs an authorization; the gateway
   broadcasts). Push mode is a session-payments topic, out of scope here.
+
+---
+
+---
+
+---
+
+---
 
 ---
 
@@ -515,24 +606,25 @@ pay --sandbox curl -X POST http://127.0.0.1:1402/v1/search -d '{"q":"test"}'
 
 ### Scene 4 — Volume tiers + variants (1:35–2:10)
 
-- 🖥️ Scroll to `v1/enrich` (tiers) and `v1/infer` (variants).
+- 🖥️ Scroll to `v1/enrich` (tiers) and `v1/models/{model}:infer` (variants).
 - ⌨️ You run:
 
 ```sh
-pay --sandbox curl -X POST http://127.0.0.1:1402/v1/infer -d '{"model":"pro"}'
+pay --sandbox curl -X POST http://127.0.0.1:1402/v1/models/pro:infer
+pay --sandbox curl -X POST http://127.0.0.1:1402/v1/models/fast:infer
 ```
 
 - 🎙️ "With volume tiers, the first tier that matches is the one that applies, and
   the last tier leaves off the `up_to` value so it covers everything above the
-  others. And variants let a field in the request itself — here it's the model —
-  decide which price you pay."
+  others. And variants let the model in the URL path — `pro` versus `fast` — decide
+  which price you pay: ten cents for pro, one cent for fast."
 
 ### Scene 5 — Takeaway (2:10–2:30)
 
 - 🎙️ "So you can price any endpoint however it makes sense — per call, per token,
   per page, per byte. There's one rule to remember: the price divided by the scale
   has to stay above a millionth of a dollar, because stablecoins only have six
-  decimal places. Go below that and validation will fail."
+  decimal places. Go below that and validation will fail. Now lets see if we can also make this work for subscriptions."
 
 ### Description bullets
 
@@ -546,8 +638,22 @@ pay --sandbox curl -X POST http://127.0.0.1:1402/v1/infer -d '{"model":"pro"}'
 - **Corrected schema:** metering is `metering.dimensions[]` with
   `direction`/`unit`/`scale`/`tiers`. The planning doc's flat `unit: requests`
   shape is wrong — see `pricing.yml` for the verified shape.
+- **Variants are path-only:** the gateway reads the variant from the URL path,
+  and only from the segment right after a literal `models/` or `voices/`. A body
+  field like `{"model":"pro"}` is ignored, so the endpoint must be shaped
+  `v1/models/{model}:infer` and called as `/v1/models/pro:infer`. With a body
+  param the call silently falls back to the first variant ($0.01), which is why
+  pro and fast both billed a penny in the earlier draft.
 - `accounting: per_agent` advances volume tiers per caller; `pooled` is the
   default shared counter.
+
+---
+
+---
+
+---
+
+---
 
 ---
 
@@ -632,6 +738,14 @@ cancel / refresh` (plural `subscriptions`).
 
 ---
 
+---
+
+---
+
+---
+
+---
+
 ## Episode 8 — Splitting Payments Across Recipients
 
 **Duration:** 2:30
@@ -640,9 +754,11 @@ cancel / refresh` (plural `subscriptions`).
 
 ### Scene 1 — Cold open (0:00–0:20)
 
-- 🎙️ "Marketplaces, affiliates, tax withholding, platform fees — almost every
+- 🎙️ "Splitting Payments. 
+  Often recieving payments to only on address is not enough. You want to split the payment across multiple addresses.
+  Marketplaces, affiliates, tax withholding, platform fees, tips — almost every
   real payment ends up getting split somehow. Pay lets you express those splits
-  right in the YAML: you name your recipients, and then you route either a
+  right in the server YAML: you name your recipients, and then you route either a
   percentage or a fixed amount to each of them."
 
 ### Scene 2 — Named recipients (0:20–0:55)
@@ -660,8 +776,6 @@ cancel / refresh` (plural `subscriptions`).
 - ⌨️ You run:
 
 ```sh
-export PARTNER_WALLET=<base58>
-export TAX_WALLET=<base58>
 pay --sandbox server start splits.yml
 pay --sandbox curl -X POST http://127.0.0.1:1402/v1/report -d '{}'
 ```
@@ -679,7 +793,7 @@ pay --sandbox curl -X POST http://127.0.0.1:1402/v1/report -d '{}'
 - 🎙️ "So you can encode every recipient, every percentage, and every fee path of a
   real-world payment in one YAML block, with no payment processor sitting in the
   middle. And if you reference a recipient that doesn't exist, it fails when the
-  spec loads — not later, in the middle of a live request."
+  spec loads — not later, in the middle of a live request. Pay.sh makes splitting payments very convenient."
 
 ### Description bullets
 
@@ -697,86 +811,11 @@ pay --sandbox curl -X POST http://127.0.0.1:1402/v1/report -d '{}'
 
 ---
 
-## Episode 9 — Debugging the 402 Handshake
-
-**Duration:** 2:30
-**Companion doc:** <https://pay.sh/docs/accept-payments/debugging>
-
-### Scene 1 — Cold open (0:00–0:20)
-
-- 🎙️ "When a paid call breaks, you really need to see which step failed — was it
-  the challenge, the payment proof, the verification, or the forward to the
-  upstream API? The Payment Debugger shows every request that comes in as a row
-  you can click into."
-
-### Scene 2 — Two ways to run it (0:20–1:00)
-
-- 🎙️ "There are two ways to run it. You can embed it directly on the gateway, or
-  you can run it as a proxy in front of the client."
-- ⌨️ You run (embedded, gateway side):
-
-```sh
-pay --sandbox server start ../episode-05-first-gateway/starter.yml --debugger
-```
-
-- 🖥️ Note: under `--sandbox` the debugger is on by default; `--debugger` is
-  explicit here for teaching. UI at `http://127.0.0.1:1402/`.
-
-### Scene 3 — Watch a live flow (1:00–1:45)
-
-- ⌨️ You run (another terminal):
-
-```sh
-pay --sandbox curl http://127.0.0.1:1402/v1/reports/usage
-```
-
-- 🖥️ Flow appears in real time. Click in: 402 challenge JSON, payment-receipt
-  header, response.
-
-### Scene 4 — The client-side proxy (1:45–2:10)
-
-- 🎙️ "For a client you control, you bind the gateway to a different port than
-  1402, and then route the call through the debugger proxy instead."
-- ⌨️ You run:
-
-```sh
-pay --sandbox server start ../episode-05-first-gateway/starter.yml --bind 127.0.0.1:1403
-pay --sandbox --debugger curl http://127.0.0.1:1403/v1/reports/usage
-```
-
-### Scene 5 — Force a failure + takeaway (2:10–2:30)
-
-- ⌨️ You run:
-
-```sh
-curl -i http://127.0.0.1:1403/v1/reports/usage
-```
-
-- 🎙️ "A plain call with no payment shows up as a 402-only flow, with no payment
-  row at all — which is exactly what an unauthenticated caller looks like. So you
-  can diagnose just about any broken paid call in a few seconds, without ever
-  digging through server logs."
-
-### Description bullets
-
-- 🛰️ Flow timeline: every challenge / proof / commit / forward as a row
-- 🔬 Per-event inspector: headers, body, signature, timing
-- 🔄 Live updates as the gateway sees them
-- 🧪 Force a 402-only flow to see the unauthenticated case
-
-### Accuracy notes
-
-- **Corrected claim:** the planning doc said client-side `--debugger` on a
-  one-shot `pay curl` is useless because the process exits. The docs actually
-  document `pay --sandbox --debugger curl <url>` as a supported proxy pattern —
-  it launches the proxy on `0.0.0.0:1402` and routes the call through it. Keep
-  the nuance: it's most valuable on long-running sessions, but it **does** work
-  for one-shots when you bind the gateway off 1402.
-- `debugger.pay.sh` is the hosted version with pre-wired sandbox endpoints.
+---
 
 ---
 
-## Episode 10 — Managing Your pay Accounts
+## Episode 9 — Managing Your pay Accounts
 
 **Duration:** 3:30
 **Companion doc:** <https://pay.sh/docs/using-pay/manage-accounts>
@@ -784,8 +823,7 @@ curl -i http://127.0.0.1:1403/v1/reports/usage
 
 ### Scene 1 — Cold open (0:00–0:20)
 
-- 🎙️ "One wallet is fine right up until it isn't. Eventually you want a personal
-  account for paying, a separate operator account for receiving, a way to move
+- 🎙️ "So in the last episodes we were always using the same wallet. And one wallet is fine right up until it isn't. Eventually you want a personal account for paying, a separate operator account for receiving, a way to move
   stablecoins between them, and a backup — because the OS keychain is convenient,
   but it doesn't sync across machines."
 
@@ -808,8 +846,7 @@ pay account list
 
 ```sh
 pay account new work
-pay account default work
-pay whoami
+
 ```
 
 - 🎙️ "When I create an account, the secret goes straight into the OS keystore, and
@@ -821,7 +858,9 @@ pay whoami
 - ⌨️ You run:
 
 ```sh
-pay --account default push 10 work
+pay send 0.01 work --currency USDC
+pay account default work
+pay whoami
 ```
 
 - 🎙️ "Here I'm pushing 10 USDC from my original account over to `work`. Because
@@ -841,16 +880,6 @@ rm -P ./work-backup.json   # after moving it to 1Password / encrypted USB
 - 🎙️ "Exporting is your entire backup story, and it matters because the keystore
   doesn't sync through iCloud. If you never export and the machine dies, those
   funds are gone for good."
-
-### Scene 6 — Simulate a new machine (2:55–3:20)
-
-- ⌨️ You run:
-
-```sh
-pay account remove work --sandbox --yes
-pay --account work whoami            # refuses to sign — keystore entry is gone
-pay account import work ./work-backup.json
-```
 
 ### Scene 7 — Takeaway (3:20–3:30)
 
@@ -879,143 +908,133 @@ pay account import work ./work-backup.json
 
 ---
 
-## Episode 11 — From Sandbox to Mainnet
-
-**Duration:** 3:00
-**Companion doc:** <https://pay.sh/docs/pay-for-apis/sandbox-and-networks>
-**Global flags:** <https://pay.sh/docs/toolchain/global-flags>
-**Deploy:** <https://pay.sh/docs/accept-payments/deploy>
-**Code:** `code/episode-11-mainnet/provider.mainnet.yml`
-
-### Scene 1 — Cold open (0:00–0:20)
-
-- 🎙️ "Sandbox is where you prove the flow works; mainnet is where it actually
-  makes money. The cutover comes down to flipping one flag and plugging in real
-  signers — and pay's defaults are designed to keep you safe through that
-  transition."
-
-### Scene 2 — Production wallet (0:20–0:55)
-
-- ⌨️ You run:
-
-```sh
-pay --mainnet whoami
-pay topup
-```
-
-- 🎙️ "`topup` opens the funding screen, where you can either scan a Solana Pay QR
-  code or buy stablecoins directly with PayPal, Venmo, or Apple Pay."
-
-### Scene 3 — The spec diff (0:55–1:45)
-
-- 🖥️ Open `provider.mainnet.yml`. Highlight the changed `operator` block:
-  `network: mainnet`, the `signer` block, `rpc_url`, and `recipient`.
-- 🎙️ "The endpoints and the pricing are identical — the only thing that changes is
-  the operator block. The one rule I'd stress is to never put the signer secret
-  inline in the file. For production, the repo recommends using GCP KMS, so you
-  set `signer.backend` to `gcp-kms` and point it at the key name and public key
-  from your secret manager. For a simpler setup, a file-based keypair works too."
-
-### Scene 4 — Boot on mainnet (1:45–2:30)
-
-- ⌨️ You run:
-
-```sh
-pay --mainnet server start provider.mainnet.yml --bind 0.0.0.0:1402
-```
-
-- ⌨️ Smoke test (real charge):
-
-```sh
-pay --mainnet curl http://<your-host>:1402/v1/reports/usage
-```
-
-### Scene 5 — Takeaway (2:30–3:00)
-
-- 🎙️ "So you can take a gateway that already works on sandbox and flip it to
-  mainnet without changing a single line of your business logic. A few production
-  tips: run the pinned container image, one instance per provider, and bind it to
-  your platform's port. Pay doesn't run as a daemon on its own, so put something
-  like systemd, pm2, or Cloud Run in front of it. And keep your recipient and
-  fee-payer wallets separate, and don't leave much in the operator wallet — it's
-  there to receive payments, not to hold a balance."
-
-### Description bullets
-
-- 🔁 `--sandbox` → `--mainnet` — same commands, different network
-- ⛽ `operator.signer:` — file keypair or KMS
-- 📡 `operator.rpc_url:` — your production RPC
-- 🛡️ `fee_payer: true` for gasless customers
-
-### Accuracy notes
-
-- The planning doc linked `/docs/cli/global-flags` (404). Correct page:
-  `/docs/toolchain/global-flags`.
-- `pay topup` funds mainnet by default; `pay topup --sandbox` funds localnet.
-- Default bind is `0.0.0.0:1402`.
-- **Signer (repo-authoritative, `monetize-api.md`):** production form is
-  `operator.signer.backend: gcp-kms` with `key_name` + `pubkey`; file form is
-  `operator.signer.type: file, path: …`. Omitting `signer` uses the active
-  `accounts.yml` account.
-- **Deploy:** pinned image `ghcr.io/solana-foundation/pay:<version>`, one
-  `server start` per provider, secrets via cloud secret manager, OTLP via
-  `--otlp-sidecar`. Recommended `operator.currencies.usd: ["USDC","USDT","CASH"]`.
+---
 
 ---
 
-## Episode 12 — Publishing to the pay-skills Catalog
+---
 
-**Duration:** 2:30
+---
+
+
+## Episode 10 — Publishing to the pay-skills Catalog
+
+**Duration:** 2:30 (deploy beat is illustrative — keep it tight or cut to a card)
 **Companion doc:** <https://pay.sh/docs/accept-payments/publish-to-pay-skills>
+**Deploy reference:** bundled `skills/pay/references/monetize-api.md` → "Production Deployment"
 **CLI reference:** <https://pay.sh/docs/toolchain/commands/agents>
-**Code:** `code/episode-12-publish/`
+**Code:** `code/episode-10-publish/`
+
+> **Where you run this:** the `pay catalog` commands run from the root of a local
+> clone of the **catalog** registry
+> [`solana-foundation/pay-skills`](https://github.com/solana-foundation/pay-skills)
+> (that's what the `.` / `providers/…` paths point at) — **not** the `pay` binary
+> repo. Each provider lives at `providers/<operator>/<name>/PAY.md`;
+> `code/episode-10-publish/` mirrors that layout so you can rehearse before cloning.
 
 ### Scene 1 — Cold open (0:00–0:20)
 
 - 🎙️ "A gateway that nobody can find is a gateway that nobody pays. The pay-skills
   catalog is the open registry that both agents and humans search to discover paid
-  APIs — and getting yours listed is just a single pull request."
+  APIs — and getting yours listed is just a fork, a `PAY.md`, and a pull request."
 
-### Scene 2 — Generate the entry (0:20–1:00)
+### Scene 2 — Deploy the gateway so it has a real URL (0:20–0:55)
 
-- 🎙️ "The first step is to sync your runtime spec into a registry markdown file."
+- 🎙️ "One thing first: the catalog only lists gateways that are actually reachable
+  on a public HTTPS domain — `service_url` can't be localhost. So the gateway we
+  built in the earlier episodes has to live somewhere. Pay ships as a container,
+  so the simplest path is one Cloud Run service per gateway: run
+  `pay server start` against your spec, bind to the platform port, and put a domain
+  in front. That domain is what goes in the listing."
+- 🖥️ Lower-third: `ghcr.io/solana-foundation/pay` on Cloud Run
+- ⌨️ You run (illustrative — this is your deploy, done once):
+
+```sh
+# Inside the container image, one service per provider spec:
+pay server start /app/providers/prod-gateway.yml \
+  --bind 0.0.0.0:8080 \
+  --openapi /app/providers/prod-gateway.openapi.json
+```
+
+- 🎙️ "Secrets — upstream API keys, RPC URLs, the fee-payer signer — come from your
+  cloud secret manager, and for production you sign with a KMS-backed key, not a
+  file. Once it's live at, say, `https://prod-gateway.example.com`, we can list it."
+
+### Scene 3 — Scaffold + finish the entry (0:55–1:35)
+
+- 🎙️ "I fork and clone the registry, then let pay scaffold a provider entry
+  straight from a gateway's live OpenAPI document. The leaf of the name —
+  `prod-gateway` — becomes the `name:` field and the directory it lands in.
+  Scaffold fetches the spec over the network, so the URL has to actually be live —
+  point it at your deployed gateway. On camera I'll point it at an already-live
+  gateway so the fetch succeeds."
+- 🖥️ Lower-third: `pay catalog scaffold <fqn> <openapi-url>`
 - ⌨️ You run:
 
 ```sh
-pay skills provider sync ../episode-11-mainnet/provider.mainnet.yml \
-  --operator solana-foundation --out providers
+git clone git@github.com:<you>/pay-skills.git
+cd pay-skills
+
+# Swap the URL for your own deployed gateway's /openapi.json. It must be live —
+# scaffold fetches it and errors on an unreachable host.
+pay catalog scaffold solana-foundation/prod-gateway \
+  https://texttospeech.google.gateway-402.com/openapi.json \
+  --output-dir providers
 ```
 
-### Scene 3 — Build, probe, validate (1:00–1:45)
-
+- 🎙️ "Scaffold pre-fills the title and description from the live spec, but three
+  things still need me. It references the spec by `openapi.url`, and the registry
+  won't accept a URL — so I snapshot the spec next to the file and switch the field
+  to `openapi.path`. I fill in the `category` and the `use_case` it left as TODO.
+  And I set `service_url` to my gateway's real domain. The finished result is the
+  small `prod-gateway` listing in the companion folder."
 - ⌨️ You run:
 
 ```sh
-pay skills build . --output /tmp/pay-skills-dist --no-probe
-pay skills probe . --files providers/solana-foundation/prod-gateway.md \
-  --currencies USDC,USDT --timeout 15 --concurrency 5
-pay skills validate . --files providers/solana-foundation/prod-gateway.md \
-  --currencies USDC,USDT
+cd providers/solana-foundation/prod-gateway
+curl -fsSL https://<your-gateway>/openapi.json -o openapi.json
+python3 -m json.tool openapi.json openapi.json   # pretty-print for reviewable diffs
+# then in PAY.md: set category + use_case + service_url, and replace
+#   openapi:\n  url: …   with   openapi:\n  path: openapi.json
 ```
 
-- 🎙️ "There are three commands here. `build --no-probe` is the fast static check.
-  Probe goes a step further and actually calls your gateway. And validate is the
-  gate you'd run in CI — it checks your pricing, your currencies, and Solana
-  support. When you wire it into CI, you add `--changed-from origin/main --format
-  github` so it leaves inline annotations on the pull request. If it's green here,
-  it'll be green in CI."
+- 🖥️ Show the finished `PAY.md`: frontmatter (`name`, `title`, `description`,
+  `use_case`, `category`, `service_url`, `openapi.path`) + the prose body, with
+  the committed `openapi.json` sitting beside it.
 
-### Scene 4 — PR + confirm discovery (1:45–2:15)
+### Scene 4 — Check it + open the PR (1:35–2:20)
 
+- 🎙️ "The one command I run most is `pay catalog check` on my provider file. It
+  parses the frontmatter, resolves the OpenAPI spec, probes the live endpoints,
+  and gives a Solana verdict — all read-only, it never writes to disk."
+- ⌨️ You run:
+
+```sh
+# Fast frontmatter + OpenAPI smoke test (no live probe).
+pay catalog check providers/solana-foundation/prod-gateway/PAY.md --no-probe
+
+# Full check: probe each endpoint and print the per-endpoint verdict table.
+pay catalog check providers/solana-foundation/prod-gateway/PAY.md -v
+```
+
+- 🎙️ "`--no-probe` is the quick static pass. Drop it and add `-v` for the real
+  thing: it calls the deployed gateway and shows you, endpoint by endpoint, whether
+  each one returns a valid Solana 402 in USDC or USDT. That same command is what PR
+  CI runs — with `--changed-from origin/main` to scope it to what you touched, and
+  `--format github` to leave inline annotations on the pull request. If it's green
+  locally, it's green in CI."
 - 🖥️ Open the PR on solana-foundation/pay-skills. After merge:
-- ⌨️ You run:
 
 ```sh
 pay skills update
-pay skills search "<your-title>"
+pay skills search "usage reports"
+pay skills show solana-foundation/prod-gateway
 ```
 
-### Scene 5 — Takeaway (2:15–2:30)
+- 🎙️ "Within a few minutes of the merge, `pay skills search` and `pay skills show`
+  surface the provider — and so do the Pay MCP catalog tools every agent uses."
+
+### Scene 5 — Takeaway (2:20–2:30)
 
 - 🎙️ "So with one merged pull request, your gateway becomes discoverable to every
   pay-enabled agent on the network. My advice is to treat that catalog entry like
@@ -1024,26 +1043,77 @@ pay skills search "<your-title>"
 
 ### Description bullets
 
-- 📂 solana-foundation/pay-skills — the open registry
-- 📝 Metadata: title, description, category, gateway URL, endpoints, agent notes
-- 🤖 Agent-readiness notes — what makes an entry callable by Claude / Codex
-- ✅ `build` / `probe` / `validate` before the PR
+- 📂 solana-foundation/pay-skills — the open registry (`providers/<fqn>/PAY.md`)
+- 🏗️ `pay catalog scaffold <fqn> <openapi-url>` — generate the entry from OpenAPI
+- ✅ `pay catalog check providers/<fqn>/PAY.md` — the check you run most
+- 🔎 `pay skills search` / `pay skills show` confirm discovery after merge
 
 ### Accuracy notes
 
-- **Corrected commands:** validation is `pay skills build` / `probe` / `validate`
-  and metadata is generated via `pay skills provider sync`. There is **no**
-  `pay skills lint`.
-- Registry markdown is for discovery; the runtime `.yml` is what
-  `pay server start` consumes. Keep them in sync.
-- **Frontmatter rules (repo `monetize-api.md`):** `description` 64–255 chars and
-  must NOT start with `Use for`; `use_case` 32–255 chars and starts with
-  `Use for`/`Use when`; `service_url` is a production HTTPS domain; declare
-  exactly one of `endpoints:` or `openapi:`. A ready example lives at
-  `code/episode-12-publish/providers/solana-foundation/prod-gateway.md`.
-- CI flags: `pay skills validate --changed-from origin/main --format github
-[--strict]`. Merges re-probe only changed providers via `--only` +
-  `--previous-dist`.
+- **Real commands (verified against `pay 0.20.0` + the updated publish doc):** the
+  publish flow is `pay catalog scaffold` → edit `PAY.md` → `pay catalog check`.
+  `pay catalog build .` writes `dist/skills.json` and is for **main-branch CI** on
+  a green tree — a local provider PR usually does not run it. There is **no**
+  `pay skills build` / `probe` / `validate` and **no** `pay skills provider sync`
+  (earlier drafts of this script used those; they never existed in the binary).
+- **Run from the catalog clone:** `pay catalog check`/`build` take `.` or
+  `providers/<fqn>/PAY.md` relative to your clone of `solana-foundation/pay-skills`,
+  not the `pay` binary repo.
+- **Registry file is `PAY.md` (uppercase)** at
+  `providers/<operator>/<name>/PAY.md` (two-level when you operate the API,
+  `providers/<operator>/<origin>/<name>/PAY.md` when you proxy another provider).
+  `name:` must match the parent directory name.
+- **Frontmatter:** required `name`, `title`, `description`, `use_case`, `category`,
+  `service_url`, plus exactly one of `openapi:` or inline `endpoints:`.
+  `description` 64–255 chars (capabilities + result shapes); `use_case` 32–255
+  chars naming concrete agent tasks; `service_url` a production HTTPS domain.
+  Free endpoints omit `pricing`; paid endpoints must return a valid Solana 402 in
+  USDC/USDT.
+- **Scaffold fetches the URL over the network (verified live 2026-06-30):**
+  `pay catalog scaffold <fqn> <url>` only accepts a reachable HTTPS URL — a fake
+  host (`prod-gateway.example.com`) fails immediately with `fetch …: error sending
+  request`, and a local path / `file://` fails with `builder error`. So the
+  on-camera scaffold points at an **already-live** gateway
+  (`https://texttospeech.google.gateway-402.com/openapi.json`); off camera you'd
+  use your own deployed gateway's URL.
+- **Scaffold emits `openapi.url` + TODOs, and the registry rejects URLs:** the
+  generated `PAY.md` has `openapi:\n  url: <gateway>/openapi.json` and leaves
+  `use_case`/`category` as `TODO`. Before publishing you must (a) snapshot the
+  spec into the provider dir (`curl -fsSL <url> -o openapi.json`, pretty-printed)
+  and switch the field to `openapi.path`, (b) fill the two TODO fields, and (c)
+  set `service_url` to your gateway's real domain. Tiny specs can use inline
+  `openapi.content` instead. The committed `prod-gateway` listing is the finished
+  result.
+- **`service_url` must be a live public domain, so the gateway has to be deployed
+  first.** The catalog probe in `pay catalog check` hits `service_url`; localhost
+  won't do. Scene 2 makes this explicit: deploy the Episode 5/8 gateway as a
+  container (`ghcr.io/solana-foundation/pay:<version>`), one `pay server start`
+  per provider, `--bind 0.0.0.0:8080`, secrets from the cloud secret manager, and
+  a KMS-backed signer (`operator.signer.backend: gcp-kms`) in production. The
+  resulting domain (e.g. `https://prod-gateway.example.com`) is the `service_url`.
+  Source: bundled `skills/pay/references/monetize-api.md` → "Production Deployment".
+- **`prod-gateway.example.com` is a placeholder.** The committed example at
+  `code/episode-10-publish/providers/solana-foundation/prod-gateway/` passes
+  `pay catalog check --no-probe` (static), but a live `-v` probe would fail until
+  you point `service_url` at a real deployment. On camera, either deploy first and
+  swap in your real domain, or show `--no-probe` and call the live probe out loud.
+- **Operation `summary` length:** each OpenAPI operation `summary` must be **24–63
+  chars** and start with an action verb (`Fetch`, `Search`, `Create`, `Generate`…).
+  It becomes the `reason:` line on the user's biometric payment prompt; the OS
+  truncates at 64 chars. `pay catalog check` errors on out-of-range length and
+  warns on a non-verb opener. The committed `prod-gateway` `openapi.json` keeps
+  both summaries verb-first and ≤63 chars so the static check is clean.
+- **`pay catalog check` flags (verified):** `--no-probe`, `-v`, `--strict`
+  (non-Solana = blocking), `--currencies USDC,USDT` (default), `--changed-from
+<REF>` (local devex), `--files <PATH>…` (CI), `--format table|json|github`,
+  `--summary-out <PATH>`, `--probe-timeout`, `--probe-concurrency`.
+- **`--changed-from` vs `--files`:** `--changed-from origin/main` is the local
+  shortcut (needs `git`); CI passes an explicit `--files` list instead. They are
+  mutually exclusive.
+
+## Episode 13 — Confidential transfers
+
+TODO:
 
 ---
 
@@ -1066,21 +1136,21 @@ Strip this note before publishing.
 
 ## Summary of corrections made vs. the planning doc
 
-| #         | Planning doc said                                               | Reality (verified on pay.sh/docs)                                                                                                     |
-| --------- | --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| Links     | `docs.pay.sh/...` with `/get-started`, `/using-pay`, `/cli/...` | Domain is `pay.sh/docs/...`; `/cli/*` paths are `/toolchain/commands/*`                                                               |
-| Ep 1      | `pay setup` then first call                                     | Sandbox needs no setup; `pay --sandbox curl` auto-funds. `setup` is mainnet/MCP                                                       |
+| #         | Planning doc said                                               | Reality (verified on pay.sh/docs)                                                                                                                                                                                   |
+| --------- | --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Links     | `docs.pay.sh/...` with `/get-started`, `/using-pay`, `/cli/...` | Domain is `pay.sh/docs/...`; `/cli/*` paths are `/toolchain/commands/*`                                                                                                                                             |
+| Ep 1      | `pay setup` then first call                                     | Sandbox needs no setup; `pay --sandbox curl` auto-funds. `setup` is mainnet/MCP                                                                                                                                     |
 | Ep 3      | `pay skills show <fqn>`, FQN `google.maps/v1`                   | `pay skills endpoints <svc> <resource>`; FQNs like `paysponge/coingecko`. `<resource>` is the OpenAPI tag (e.g. `voices`/`text`), not a project ID; `translate` was unpublished so demo re-pinned to `texttospeech` |
-| Ep 6      | flat `unit: requests` metering                                  | `metering.dimensions[]` with `direction`/`unit`/`scale`/`tiers`                                                                       |
-| Ep 7      | `pay subscriptions list`                                        | Correct (plural); also `status`/`cancel`/`refresh`                                                                                    |
-| Ep 9      | one-shot `--debugger` is useless                                | Supported as a proxy; bind gateway off 1402 and it works for one-shots too                                                            |
-| Ep 10     | `pay whoami --account work`, `remove --yes`                     | `--account` is global (precedes subcommand); `remove` needs `--sandbox` qualifier                                                     |
-| Ep 11     | `/docs/cli/global-flags`                                        | `/docs/toolchain/global-flags`                                                                                                        |
-| Ep 12     | `pay skills lint`                                               | `pay skills build`/`probe`/`validate` + `provider sync`                                                                               |
-| Ep 4      | MCP tools `pay.search` / `pay.endpoints` (website)              | `search_catalog`, `get_catalog_entry`, `curl`, `get_balance`, `list_catalog`, `create_skill` (repo `SKILL.md`)                        |
-| Ep 5–8,11 | `operator.currencies.usd: ["USDC"]`                             | `["USDC","USDT","CASH"]` recommended; endpoints carry `resource:` (repo fixture)                                                      |
-| Ep 11     | `signer: { type: file, path }` only                             | Production form is `signer.backend: gcp-kms` (`key_name`/`pubkey`); file form also valid (repo `monetize-api.md`)                     |
-| Ep 12     | generic `build`/`probe`/`validate`                              | `build --no-probe`, `validate --changed-from origin/main --format github --strict`; frontmatter length rules (repo `monetize-api.md`) |
+| Ep 6      | flat `unit: requests` metering                                  | `metering.dimensions[]` with `direction`/`unit`/`scale`/`tiers`                                                                                                                                                     |
+| Ep 7      | `pay subscriptions list`                                        | Correct (plural); also `status`/`cancel`/`refresh`                                                                                                                                                                  |
+| Ep 9      | one-shot `--debugger` is useless                                | Supported as a proxy; bind gateway off 1402 and it works for one-shots too                                                                                                                                          |
+| Ep 10     | `pay whoami --account work`, `remove --yes`                     | `--account` is global (precedes subcommand); `remove` needs `--sandbox` qualifier                                                                                                                                   |
+| Ep 11     | `/docs/cli/global-flags`                                        | `/docs/toolchain/global-flags`                                                                                                                                                                                      |
+| Ep 10     | `pay skills lint` / `build`/`probe`/`validate` / `provider sync` | **Publish flow is `pay catalog`:** `pay catalog scaffold <fqn> <openapi-url>` → edit `providers/<fqn>/PAY.md` → `pay catalog check …`. `pay catalog build` is main-branch CI only. `skills build/probe/validate/provider sync` never existed in the binary |
+| Ep 4      | MCP tools `pay.search` / `pay.endpoints` (website)              | `search_catalog`, `get_catalog_entry`, `curl`, `get_balance`, `list_catalog`, `create_skill` (repo `SKILL.md`)                                                                                                      |
+| Ep 5–8,11 | `operator.currencies.usd: ["USDC"]`                             | `["USDC","USDT","CASH"]` recommended; endpoints carry `resource:` (repo fixture)                                                                                                                                    |
+| Ep 11     | `signer: { type: file, path }` only                             | Production form is `signer.backend: gcp-kms` (`key_name`/`pubkey`); file form also valid (repo `monetize-api.md`)                                                                                                   |
+| Ep 12     | generic `build`/`probe`/`validate`                              | `build --no-probe`, `validate --changed-from origin/main --format github --strict`; frontmatter length rules (repo `monetize-api.md`)                                                                               |
 
 ## Nothing impossible found
 

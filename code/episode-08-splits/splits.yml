@@ -10,7 +10,7 @@ routing:
 
 operator:
   currencies:
-    usd: ['USDC', 'USDT', 'CASH']
+    usd: ['USDC']
   network: localnet
   fee_payer: true
 
@@ -18,10 +18,10 @@ operator:
 # readable and auditable — a raw pubkey is a guessing game.
 recipients:
   partner:
-    account: '${PARTNER_WALLET}'
+    account: 'mandyRKj8mvxhuk9Np7pJEXd7BjoEZZNRFxUTpDFeAp'
     label: 'Partner'
   tax_authority:
-    account: '${TAX_WALLET}'
+    account: 'taxvjUQCEvNGK2m2kA1yzWfA1TDGAVUnq2VCd6voMjN'
     label: 'Tax withholding'
 
 endpoints:

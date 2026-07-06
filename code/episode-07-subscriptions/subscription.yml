@@ -1,7 +1,7 @@
 name: pro-feed
 subdomain: pro-feed
-title: 'Pro Feed'
-description: 'Flat-fee monthly access — $9.99 USDC every 30 days.'
+title: "Pro Feed"
+description: "Flat-fee monthly access — $9.99 USDC every 30 days."
 category: data
 version: v1
 
@@ -10,20 +10,24 @@ routing:
 
 operator:
   currencies:
-    usd: ['USDC', 'USDT', 'CASH']
+    usd: ["USDC", "USDT", "CASH"]
   network: localnet
   fee_payer: true
+  # Required for subscription endpoints. Signs the SIWMPP session tokens callers
+  # present on activation/renewal. Must stay stable across restarts — rotating
+  # it invalidates every outstanding session token. Generate with:
+  #   openssl rand -hex 32
+  challenge_binding_secret: "9e7a8d130353de86cd6f9c20132ded74e6d6dfd3178d536e1ec62b5cee2254fd"
 
 endpoints:
   - method: GET
-    path: 'api/v1/pro/feed'
-    resource: 'pro-feed'
-    description: 'Pro feed — monthly subscription, 30-day billing period.'
+    path: "api/v1/pro/feed"
+    resource: "pro-feed"
+    description: "Pro feed — monthly subscription, 30-day billing period."
     subscription:
       # Periods are fixed elapsed time. Use `d`/`day`/`days` or `w`/`week`/`weeks`.
       # `month` is rejected (calendar months are not a fixed number of hours).
-      period: '30d'
+      period: "30d"
       price_usd: 9.99
       currency: USDC
-      # plan_id is written back here by `pay --sandbox server start` on first
-      # launch, after you approve publishing the on-chain Plan PDA. Commit it.
+      plan_id_numeric: 47

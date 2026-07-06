@@ -69,9 +69,13 @@ endpoints:
               price_usd: 0.005
             - price_usd: 0.002
 
-  # 4) Variant pricing — a request field (here `model`) selects the price.
+  # 4) Variant pricing — the gateway reads the variant from the URL path, and
+  #    ONLY from a `models/<value>` (or `voices/<value>`) segment. The value
+  #    after `models/` is matched against each variant's `value`, so callers hit
+  #    /v1/models/fast:infer or /v1/models/pro:infer. The request body is NOT
+  #    consulted for variant selection.
   - method: POST
-    path: 'v1/infer'
+    path: 'v1/models/{model}/infer'
     resource: 'infer'
     description: 'Inference. fast=$0.01, pro=$0.10 per request.'
     metering:

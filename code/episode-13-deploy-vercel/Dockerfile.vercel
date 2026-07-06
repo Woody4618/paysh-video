@@ -1,0 +1,20 @@
+# Run the pay gateway as a first-class container on Vercel.
+# Docs: https://vercel.com/blog/dockerfile-on-vercel
+#
+# This container is JUST the paywall. The frontend and the real API
+# (/api/forecast) are the Next.js app in this same project. The gateway proxies
+# paid requests to that app's /api/forecast route (see provider.yml).
+#
+# The only hard rule Vercel imposes: the server must listen on $PORT
+# (defaults to 80). pay satisfies that via `--bind 0.0.0.0:${PORT}`.
+
+# Pin the image — never use `latest` in production.
+FROM ghcr.io/solana-foundation/pay:0.20.0
+
+# Ship the gateway spec into the image.
+COPY provider.yml /app/provider.yml
+
+# Bind the platform port. Secrets (GATEWAY_SHARED_SECRET, UPSTREAM_ORIGIN,
+# PAY_RPC_URL, the KMS vars, etc.) are injected at runtime as Vercel
+# environment variables — they are NOT baked into this image.
+CMD ["sh", "-c", "pay server start /app/provider.yml --bind 0.0.0.0:${PORT:-80}"]

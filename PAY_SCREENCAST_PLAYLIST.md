@@ -131,7 +131,7 @@ You can install pay and make a paid HTTP request without ever creating a develop
 
 ### Hands-on steps
 1. Show the exact same `curl` command with and without `pay` — payload identical, payment side handled transparently.
-2. Repeat with `pay wget`, `pay http POST ... query=test`.
+2. Repeat with `pay --sandbox wget -qO- https://debugger.pay.sh/mpp/quote/AAPL` and `pay --sandbox http GET https://debugger.pay.sh/mpp/quote/AAPL`. (`http` is HTTPie — `brew install httpie` first; `wget` needs `-qO-` to print the body instead of saving it to a file.)
 3. `pay fetch https://...` — same URL, no external curl binary needed.
 4. `pay claude` — Claude Code session opens with Pay tools attached; ask it to "buy me a quote for AAPL" and watch it discover + pay.
 

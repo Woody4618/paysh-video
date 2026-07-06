@@ -10,10 +10,9 @@ the exact commands to run on camera. All specs are verified against
 | 6 | `episode-06-pricing/` | Per-call, token, volume-tier, and variant pricing |
 | 7 | `episode-07-subscriptions/` | Recurring `subscription:` endpoint + Plan PDA |
 | 8 | `episode-08-splits/` | Percentage and fixed-amount payment splits |
-| 11 | `episode-11-mainnet/` | Production spec — KMS/file signer, RPC, mainnet cutover |
-| 12 | `episode-12-publish/` | Registry provider markdown + publish flow |
+| 10 | `episode-10-publish/` | Registry provider markdown + publish flow |
 
-Episodes 1–4, 9, and 10 are terminal/browser only — no code needed.
+Episodes 1–4 and 9 are terminal/browser only — no code needed.
 
 All specs follow the canonical shapes from the docs that ship with the `pay`
 binary (`skills/pay/references/monetize-api.md`) and the Rust provider-spec
@@ -28,7 +27,7 @@ pay --version
 ```
 
 Every example runs on `--sandbox` (hosted Surfpool, auto-funded ephemeral
-wallet, no real funds). Episode 11 covers the mainnet cutover.
+wallet, no real funds).
 
 ## Quick start
 

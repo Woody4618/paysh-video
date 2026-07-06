@@ -1,0 +1,65 @@
+name: weather-pro
+subdomain: weather-pro
+title: 'Weather Pro'
+description: 'Paid weather forecasts. Wraps an upstream weather API behind a 402 paywall.'
+category: data
+version: v1
+
+# `proxy` means: after the caller pays, forward the request to the upstream.
+# Here the "upstream" is THIS SAME app's own Next.js route (/api/forecast) — the
+# real API logic lives in the Next.js app, and the gateway is the paywall in
+# front of it.
+#
+# The `auth` block injects a shared secret the gateway holds. The /api/forecast
+# route checks for it and rejects anything that didn't come through the paid
+# gateway — so callers can't bypass payment by hitting /api/forecast directly.
+routing:
+  type: proxy
+  # In production this is the app's own public origin. Locally it's the
+  # `next dev` server (see README for the localnet test flow).
+  url: '${UPSTREAM_ORIGIN}/api/'
+  auth:
+    method: header
+    key: x-gateway-secret
+    # The shared secret lives in an env var (Vercel project env), never in this
+    # file and never in the image. The Next.js route validates the same value.
+    value_from_env: GATEWAY_SHARED_SECRET
+
+operator:
+  currencies:
+    usd: ['USDC', 'USDT', 'CASH']
+  # Flip to `mainnet` for the real deploy. `localnet` is for sandbox testing.
+  network: mainnet
+  fee_payer: true
+  rpc_url: '${PAY_RPC_URL}'
+  recipient: '${PAY_PAYMENT_RECIPIENT}'
+  # Production signer: the private key stays in an external KMS, never on the
+  # (ephemeral, autoscaled) Vercel container. This is what makes the stateless
+  # container model safe.
+  signer:
+    backend: gcp-kms
+    key_name: '${PAY_GCP_KMS_KEY_NAME}'
+    pubkey: '${PAY_GCP_KMS_PUBKEY}'
+
+# endpoints[] is BOTH the price list AND the allowlist. Anything not listed
+# here returns 404 — even if the upstream route exists.
+# NOTE: `path` is relative to routing.url, so `forecast` maps to
+# `${UPSTREAM_ORIGIN}/api/forecast`.
+endpoints:
+  # Free: lets agents/humans probe the gateway without paying.
+  - method: GET
+    path: 'health'
+    description: 'Health check. Free.'
+
+  # Paid: $0.01 per forecast lookup.
+  - method: GET
+    path: 'forecast'
+    resource: 'forecast'
+    description: 'Current + 7-day forecast for a location. $0.01 per request.'
+    metering:
+      dimensions:
+        - direction: usage
+          unit: requests
+          scale: 1
+          tiers:
+            - price_usd: 0.01
