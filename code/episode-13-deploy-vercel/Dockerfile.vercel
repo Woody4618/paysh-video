@@ -8,13 +8,26 @@
 # The only hard rule Vercel imposes: the server must listen on $PORT
 # (defaults to 80). pay satisfies that via `--bind 0.0.0.0:${PORT}`.
 
-# Pin the image — never use `latest` in production.
-FROM ghcr.io/solana-foundation/pay:0.20.0
+# The published image currently ships only the `latest` tag (there is no
+# versioned tag yet). Once the project publishes immutable version tags, pin to
+# one here (e.g. :0.20.0) instead of `latest` for reproducible production builds.
+FROM ghcr.io/solana-foundation/pay:latest
 
 # Ship the gateway spec into the image.
 COPY provider.yml /app/provider.yml
 
-# Bind the platform port. Secrets (GATEWAY_SHARED_SECRET, UPSTREAM_ORIGIN,
-# PAY_RPC_URL, the KMS vars, etc.) are injected at runtime as Vercel
-# environment variables — they are NOT baked into this image.
-CMD ["sh", "-c", "pay server start /app/provider.yml --bind 0.0.0.0:${PORT:-80}"]
+# The base image sets ENTRYPOINT ["pay"], so any CMD would be passed as args to
+# `pay`. We need a real shell to expand $PORT and write the keypair file, so
+# reset the entrypoint to a shell.
+ENTRYPOINT ["/bin/sh", "-c"]
+
+# Boot sequence (single shell string because ENTRYPOINT is `sh -c`):
+#  1) Materialize the fee-payer keypair from an env var to /tmp. The `file`
+#     signer in provider.yml reads it from there. The key is NEVER baked into
+#     the image — it arrives at runtime as the PAY_SIGNER_KEYPAIR env var
+#     (a 64-byte Solana CLI JSON array, e.g. "[12,34,...]").
+#  2) Start the gateway bound to the platform port.
+#
+# Secrets (PAY_SIGNER_KEYPAIR, GATEWAY_SHARED_SECRET, UPSTREAM_ORIGIN,
+# PAY_RPC_URL, PAY_PAYMENT_RECIPIENT) are injected as Vercel env vars.
+CMD ["printf '%s' \"$PAY_SIGNER_KEYPAIR\" > /tmp/gateway-keypair.json && exec pay server start /app/provider.yml --bind 0.0.0.0:${PORT:-80}"]

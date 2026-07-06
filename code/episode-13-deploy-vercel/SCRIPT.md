@@ -48,9 +48,10 @@ routing:
 - ⌨️ Open `Dockerfile.vercel`:
 
 ```docker
-FROM ghcr.io/solana-foundation/pay:0.20.0
+FROM ghcr.io/solana-foundation/pay:latest
 COPY provider.yml /app/provider.yml
-CMD ["sh", "-c", "pay server start /app/provider.yml --bind 0.0.0.0:${PORT:-80}"]
+ENTRYPOINT ["/bin/sh", "-c"]   # base image's ENTRYPOINT is ["pay"] — reset it
+CMD ["exec pay server start /app/provider.yml --bind 0.0.0.0:${PORT:-80}"]
 ```
 
 - 🎙️ "The gateway is just a container that listens on a port. Vercel's only rule
@@ -148,7 +149,8 @@ pay --mainnet curl https://your-app.vercel.app/pay/forecast
   debugger (in-memory, per-instance). Use `--otlp-sidecar` for prod observability.
 - **Verify 402 passthrough first** — the highest-risk item on any managed edge.
 - App builds clean on Next.js 15 (`npm run build`). Commands verified against
-  `pay 0.20.0` and the "Production Deployment" section of `monetize-api.md`.
+  the `pay` image (`ghcr.io/solana-foundation/pay:latest`) and the "Production
+  Deployment" section of `monetize-api.md`.
   Forecast data is deterministic demo output — swap the route body for a real
   data source.
 

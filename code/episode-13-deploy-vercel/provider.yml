@@ -33,13 +33,22 @@ operator:
   fee_payer: true
   rpc_url: '${PAY_RPC_URL}'
   recipient: '${PAY_PAYMENT_RECIPIENT}'
-  # Production signer: the private key stays in an external KMS, never on the
-  # (ephemeral, autoscaled) Vercel container. This is what makes the stateless
-  # container model safe.
+  # Signer: how the gateway loads the fee-payer wallet.
+  #
+  # File signer (simple, less secure) — points at a 64-byte Solana CLI keypair
+  # JSON on disk. The container entrypoint writes this file at boot from the
+  # PAY_SIGNER_KEYPAIR env var (see Dockerfile.vercel), because the container
+  # filesystem is ephemeral and nothing sensitive should be baked into the image.
   signer:
-    backend: gcp-kms
-    key_name: '${PAY_GCP_KMS_KEY_NAME}'
-    pubkey: '${PAY_GCP_KMS_PUBKEY}'
+    backend: file
+    path: /tmp/gateway-keypair.json
+
+  # Production alternative — key never leaves an HSM (recommended once you're
+  # past the first deploy):
+  # signer:
+  #   backend: gcp-kms
+  #   key_name: '${PAY_GCP_KMS_KEY_NAME}'
+  #   pubkey: '${PAY_GCP_KMS_PUBKEY}'
 
 # endpoints[] is BOTH the price list AND the allowlist. Anything not listed
 # here returns 404 — even if the upstream route exists.
