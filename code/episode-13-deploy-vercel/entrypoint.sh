@@ -60,12 +60,35 @@ if [ "$(wc -c < "$KEYPAIR" | tr -d ' ')" = "0" ]; then
 fi
 
 # 3) Substitute the literal ${VAR} fields into a runtime spec.
-sed \
-  -e "s|\${PAY_RPC_URL}|$PAY_RPC_URL|g" \
-  -e "s|\${PAY_PAYMENT_RECIPIENT}|$PAY_PAYMENT_RECIPIENT|g" \
-  -e "s|\${UPSTREAM_ORIGIN}|$UPSTREAM_ORIGIN|g" \
-  "$SPEC_SRC" > "$SPEC_RUNTIME" \
+#    We use awk (not sed) and treat both the placeholder and the value as
+#    LITERAL strings. sed is unsafe here: URLs contain '/', '&', '?', and can
+#    contain the delimiter itself (that caused "unterminated s command"), and
+#    '&' in a sed replacement is special. awk index()/substr() has no such
+#    pitfalls. Values are passed via the environment (ENVIRON), never inlined.
+awk '
+  function repl(line, ph, val,    out, p) {
+    while ((p = index(line, ph)) > 0) {
+      out = out substr(line, 1, p - 1) val
+      line = substr(line, p + length(ph))
+    }
+    return out line
+  }
+  {
+    $0 = repl($0, "${PAY_RPC_URL}",         ENVIRON["PAY_RPC_URL"])
+    $0 = repl($0, "${PAY_PAYMENT_RECIPIENT}", ENVIRON["PAY_PAYMENT_RECIPIENT"])
+    $0 = repl($0, "${UPSTREAM_ORIGIN}",      ENVIRON["UPSTREAM_ORIGIN"])
+    print
+  }
+' "$SPEC_SRC" > "$SPEC_RUNTIME" \
   || serve_error "failed to render runtime spec from $SPEC_SRC"
+
+# Guard: if any of the THREE substituted placeholders survived on a
+# non-comment line, something went wrong (typo / missing env). Comment lines
+# (which mention ${...} and the commented-out KMS block) are ignored.
+if grep -v '^[[:space:]]*#' "$SPEC_RUNTIME" \
+   | grep -qE '\$\{(PAY_RPC_URL|PAY_PAYMENT_RECIPIENT|UPSTREAM_ORIGIN)\}'; then
+  serve_error "runtime spec still contains an unresolved placeholder on an active line. Check the gateway env vars for typos or newlines."
+fi
 
 # 4) Start the gateway. If it exits (config validation failure, RPC error,
 #    bad keypair, etc.), capture the reason and log it instead of crashing.
