@@ -1,4 +1,4 @@
-# Episode 13 — Deploy a Paid Gateway (Vercel + Next.js)
+# Episode 10 — Deploy a Paid Gateway (Vercel + Next.js)
 
 A single Next.js app that contains **both** a real API and its frontend, with a
 **pay gateway** sitting in front of the API as a 402 paywall — all on one Vercel
@@ -152,7 +152,7 @@ deployments**: host the app anywhere (Vercel, a Node server, a container), host
 the gateway on a container platform, and point `UPSTREAM_ORIGIN` at the app's
 public origin. The `auth` layer is identical everywhere — it's a property of the
 spec, not the host. The resulting public HTTPS domain becomes the `service_url`
-in your pay-skills listing (Episode 12).
+in your pay-skills listing (Episode 11).
 
 ---
 

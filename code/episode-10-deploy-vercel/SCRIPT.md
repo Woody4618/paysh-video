@@ -1,14 +1,14 @@
-# Episode 13 — Deploy a Paid Gateway (Vercel + Next.js)
+# Episode 10 — Deploy a Paid Gateway (Vercel + Next.js)
 
 **Duration:** ~4:30
 **Companion doc:** <https://pay.sh/docs/accept-payments/deploy>
 **Vercel reference:** <https://vercel.com/blog/dockerfile-on-vercel>
 **Deploy reference:** bundled `.agents/skills/pay/references/monetize-api.md` → "Production Deployment"
-**Code:** `code/episode-13-deploy-vercel/`
+**Code:** `code/episode-10-deploy-vercel/`
 **Live demo:** <https://paysh-video.vercel.app>
 
 > **Track:** producer. This is the "now put it on the internet" episode — it
-> follows Episode 11 (sandbox → mainnet) and pairs with Episode 12 (publish).
+> pairs with Episode 11 (publish to the catalog).
 > Everything shown runs on **mainnet**; keep real charges tiny ($0.01/call).
 
 ---

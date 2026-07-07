@@ -1,4 +1,4 @@
-# Episode 10 — Publishing to the pay-skills Catalog
+# Episode 11 — Publishing to the pay-skills Catalog
 
 Make your gateway discoverable to every pay-enabled agent. Discovery metadata
 lives in a provider **`PAY.md`** file in the registry (frontmatter + prose notes,
