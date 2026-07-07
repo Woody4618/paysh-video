@@ -210,10 +210,28 @@ export default function Home() {
                     : "paid by your wallet"}
                 </dd>
               </dl>
+              <a
+                href={`/pay/forecast?location=${encodeURIComponent(location)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  display: "inline-block",
+                  marginTop: 16,
+                  padding: "10px 16px",
+                  background: "#b79cff",
+                  color: "#080b0f",
+                  borderRadius: 8,
+                  fontWeight: 600,
+                  fontSize: 13,
+                  textDecoration: "none",
+                }}
+              >
+                Pay in browser →
+              </a>
               <p style={{ margin: "12px 0 0", fontSize: 11, color: "#5f6b78" }}>
                 Decoded from the <code>Www-Authenticate</code> challenge header — the
-                browser can read it but can&apos;t sign, so it shows the price instead of
-                paying.
+                browser can read it but can&apos;t sign here, so it shows the price. Open
+                the gateway page directly to pay with a wallet.
               </p>
             </div>
           )}
