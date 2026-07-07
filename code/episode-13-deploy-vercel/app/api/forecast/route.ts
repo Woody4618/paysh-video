@@ -43,14 +43,14 @@ export async function GET(req: NextRequest) {
       date: day.toISOString().slice(0, 10),
       high_c: 18 + ((i * 3) % 7),
       low_c: 9 + ((i * 2) % 5),
-      condition: ["clear", "partly cloudy", "rain", "cloudy"][i % 4],
+      condition: ["sunny", "clear", "partly cloudy", "sunny", "cloudy"][i % 5],
     };
   });
 
   return NextResponse.json({
     location,
     generated_at: now.toISOString(),
-    current: { temp_c: 17, condition: "partly cloudy", wind_kph: 12 },
+    current: { temp_c: 24, condition: "sunny", wind_kph: 9 },
     forecast: daily,
   });
 }
