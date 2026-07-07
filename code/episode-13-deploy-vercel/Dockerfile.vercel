@@ -13,25 +13,20 @@
 # one here (e.g. :0.20.0) instead of `latest` for reproducible production builds.
 FROM ghcr.io/solana-foundation/pay:latest
 
-# Ship the gateway spec into the image.
-COPY provider.yml /app/provider.yml
+# The base image runs as non-root USER `pay` with WORKDIR /app. Copy our files
+# in with read/execute perms so the `pay` user can read the spec and run the
+# entrypoint (COPYed files are root-owned by default; --chmod makes them world
+# readable/executable so the non-root user can use them).
+COPY --chmod=0755 entrypoint.sh /app/entrypoint.sh
+COPY --chmod=0644 provider.yml /app/provider.yml
 
-# The base image sets ENTRYPOINT ["pay"], so any CMD would be passed as args to
-# `pay`. We need a real shell to expand $PORT and write the keypair file, so
-# reset the entrypoint to a shell.
-ENTRYPOINT ["/bin/sh", "-c"]
-
-# Boot sequence (single shell string because ENTRYPOINT is `sh -c`):
-#  1) Fail fast if required env vars are missing.
-#  2) Materialize the fee-payer keypair from PAY_SIGNER_KEYPAIR to /tmp. The
-#     `file` signer in provider.yml reads it from there. The key is NEVER baked
-#     into the image — it arrives at runtime (a 64-number Solana CLI JSON array).
-#  3) IMPORTANT: pay does NOT expand ${VAR} in the YAML for rpc_url / recipient /
-#     routing.url — those fields are read literally. So we substitute them into a
-#     runtime copy of the spec here, using the real env vars. (Only split
-#     `recipients` support native ${VAR} expansion; these fields do not.)
-#  4) Start the gateway bound to the platform port.
+# The base image sets ENTRYPOINT ["pay"]; override it with our boot script.
+# The script validates env, substitutes the literal ${VAR} fields into a runtime
+# spec, and starts pay. Crucially, on ANY failure it does NOT exit — it logs the
+# reason and idles so the problem is visible in Vercel Runtime Logs instead of
+# crash-looping at boot as a stuck "Deploying outputs..." state.
 #
-# Env vars injected by Vercel: PAY_SIGNER_KEYPAIR, PAY_RPC_URL,
-# PAY_PAYMENT_RECIPIENT, UPSTREAM_ORIGIN, GATEWAY_SHARED_SECRET.
-CMD ["set -e; for v in PAY_SIGNER_KEYPAIR PAY_RPC_URL PAY_PAYMENT_RECIPIENT UPSTREAM_ORIGIN GATEWAY_SHARED_SECRET; do eval val=\\$$v; if [ -z \"$val\" ]; then echo \"FATAL: env var $v is empty or unset. Set it in the gateway project env vars, then redeploy.\" >&2; exit 1; fi; done; printf '%s' \"$PAY_SIGNER_KEYPAIR\" > /tmp/gateway-keypair.json; sed -e \"s|\\${PAY_RPC_URL}|$PAY_RPC_URL|g\" -e \"s|\\${PAY_PAYMENT_RECIPIENT}|$PAY_PAYMENT_RECIPIENT|g\" -e \"s|\\${UPSTREAM_ORIGIN}|$UPSTREAM_ORIGIN|g\" /app/provider.yml > /tmp/provider.runtime.yml; exec pay server start /tmp/provider.runtime.yml --bind 0.0.0.0:${PORT:-80}"]
+# NOTE: the container runs as non-root, so it CANNOT bind ports < 1024. Vercel
+# injects a high $PORT; the entrypoint falls back to 8080 (not 80) if $PORT is
+# unset so it still works locally as non-root.
+ENTRYPOINT ["/bin/sh", "/app/entrypoint.sh"]
