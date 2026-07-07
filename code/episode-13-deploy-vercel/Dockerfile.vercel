@@ -30,4 +30,4 @@ ENTRYPOINT ["/bin/sh", "-c"]
 #
 # Secrets (PAY_SIGNER_KEYPAIR, GATEWAY_SHARED_SECRET, UPSTREAM_ORIGIN,
 # PAY_RPC_URL, PAY_PAYMENT_RECIPIENT) are injected as Vercel env vars.
-CMD ["printf '%s' \"$PAY_SIGNER_KEYPAIR\" > /tmp/gateway-keypair.json && exec pay server start /app/provider.yml --bind 0.0.0.0:${PORT:-80}"]
+CMD ["if [ -z \"$PAY_SIGNER_KEYPAIR\" ]; then echo 'FATAL: PAY_SIGNER_KEYPAIR env var is empty or unset. Set it to the full 64-number Solana keypair JSON array in the gateway project env vars, then redeploy.' >&2; exit 1; fi; printf '%s' \"$PAY_SIGNER_KEYPAIR\" > /tmp/gateway-keypair.json && exec pay server start /app/provider.yml --bind 0.0.0.0:${PORT:-80}"]

@@ -35,16 +35,26 @@ operator:
   recipient: '${PAY_PAYMENT_RECIPIENT}'
   # Signer: how the gateway loads the fee-payer wallet.
   #
-  # File signer (simple, less secure) — points at a 64-byte Solana CLI keypair
-  # JSON on disk. The container entrypoint writes this file at boot from the
-  # PAY_SIGNER_KEYPAIR env var (see Dockerfile.vercel), because the container
-  # filesystem is ephemeral and nothing sensitive should be baked into the image.
+  # File signer (simple) — points at a 64-byte Solana CLI keypair JSON on disk.
+  # The container entrypoint writes this file at boot from the PAY_SIGNER_KEYPAIR
+  # env var (see Dockerfile.vercel); nothing sensitive is baked into the image.
+  #
+  # ⚠️  TREAT THIS AS A HOT WALLET. The raw private key lives in a Vercel env var
+  #     and is written to each ephemeral instance's /tmp. Anyone with dashboard
+  #     access can read it. Keep only a few dollars of USDC + minimal SOL on it,
+  #     and sweep revenue to a cold account regularly (`pay push`). Migrate to a
+  #     KMS signer (below) before this holds real value.
+  #
+  # NOTE: gcp-kms requires a pay build with `--features gcp_kms`. The stock
+  # ghcr.io/solana-foundation/pay:latest image is NOT built with it, so this
+  # backend will error at startup on that image. To use KMS you must either
+  # build a custom image (`cargo build --features gcp_kms`) or run the gateway
+  # on a host with native GCP auth (e.g. Cloud Run). See README.
   signer:
     backend: file
     path: /tmp/gateway-keypair.json
 
-  # Production alternative — key never leaves an HSM (recommended once you're
-  # past the first deploy):
+  # KMS alternative (needs a gcp_kms-enabled build — see NOTE above):
   # signer:
   #   backend: gcp-kms
   #   key_name: '${PAY_GCP_KMS_KEY_NAME}'

@@ -14,20 +14,27 @@
 // that rewrites status codes or strips headers on the /pay/* path. Verify
 // end-to-end after deploy (see README "Verify the 402 passthrough").
 
+// Normalize GATEWAY_URL: strip whitespace/newlines (common copy-paste artifact
+// in dashboard env vars) and prepend https:// if the scheme is missing. Next.js
+// rewrite destinations must start with `/`, `http://`, or `https://`, so a bare
+// hostname or a stray newline otherwise fails the build.
+function gatewayBaseUrl() {
+  const raw = (process.env.GATEWAY_URL || "").trim();
+  if (!raw) return "http://localhost:1402"; // local dev default
+  if (/^https?:\/\//i.test(raw)) return raw.replace(/\/+$/, "");
+  return `https://${raw.replace(/\/+$/, "")}`;
+}
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   async rewrites() {
     return [
       {
         source: "/pay/:path*",
-        // Points at the gateway container in the same Vercel project. Swap for
-        // your gateway's internal/container URL per Vercel's container-images
-        // routing docs: https://vercel.com/docs/functions/container-images
-        // For local dev the gateway runs on its own port (see README).
-        destination:
-          process.env.GATEWAY_URL
-            ? `${process.env.GATEWAY_URL}/:path*`
-            : "http://localhost:1402/:path*",
+        // Points at the gateway container. Swap GATEWAY_URL for your gateway's
+        // URL per Vercel's container-images routing docs:
+        // https://vercel.com/docs/functions/container-images
+        destination: `${gatewayBaseUrl()}/:path*`,
       },
     ];
   },

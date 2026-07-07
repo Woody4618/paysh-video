@@ -164,12 +164,24 @@ push, one domain, autoscaled on Fluid compute.
 
 Two things to get right because Vercel containers are **stateless & autoscaled**:
 
-1. **Signer must be external.** Never ship a file keypair in the image —
-   instances are ephemeral and replicated. Use `operator.signer.backend:
-   gcp-kms` (as in `provider.yml`) so the key lives outside the container.
+1. **Never bake the key into the image.** The keypair arrives at runtime via the
+   `PAY_SIGNER_KEYPAIR` env var and is written to `/tmp` at boot. This is a
+   **hot-wallet** setup — the raw key is readable by anyone with Vercel dashboard
+   access, and is written to each ephemeral instance. Keep only a few dollars on
+   it and sweep revenue to a cold account with `pay push`.
 2. **The embedded debugger won't persist.** It's in-memory per instance and
    evaporates on scale-down. Use OTLP export (`--otlp-sidecar`) for production
    observability instead.
+
+> **Why not GCP KMS here?** The `gcp-kms` signer is the secure production
+> choice, but it's a **build-feature-gated** code path in pay
+> (`cargo build --features gcp_kms`). The stock
+> `ghcr.io/solana-foundation/pay:latest` image is **not** built with it, so
+> setting `backend: gcp-kms` will make the gateway error at startup. To use KMS
+> you must either (a) build a custom pay image with the feature enabled, or
+> (b) run the gateway on **Google Cloud Run**, where the container gets native
+> GCP auth (Workload Identity) and KMS works with far less glue. On Vercel, the
+> hardened file/hot-wallet approach above is the pragmatic path.
 
 Expect a **cold start** on the first request after idle (scale-to-zero); set a
 minimum instance count if that first-call latency matters.
