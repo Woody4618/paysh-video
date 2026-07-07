@@ -68,6 +68,19 @@ for v in PAY_SIGNER_KEYPAIR PAY_RPC_URL PAY_PAYMENT_RECIPIENT UPSTREAM_ORIGIN GA
   fi
 done
 
+# 1b) UPSTREAM_ORIGIN and PAY_RPC_URL must be absolute URLs. If UPSTREAM_ORIGIN
+#     is not absolute, routing.url becomes a relative path like '/api/' and the
+#     proxy fails at request time with "Invalid upstream URL: relative URL
+#     without a base" (a 502). Catch it here as a clear startup error instead.
+case "$UPSTREAM_ORIGIN" in
+  http://*|https://*) ;;
+  *) serve_error "UPSTREAM_ORIGIN must be an absolute URL (https://your-app.example.com), got: '$UPSTREAM_ORIGIN'" ;;
+esac
+case "$PAY_RPC_URL" in
+  http://*|https://*) ;;
+  *) serve_error "PAY_RPC_URL must be an absolute URL, got: '$PAY_RPC_URL'" ;;
+esac
+
 # 2) Materialize the fee-payer keypair.
 printf '%s' "$PAY_SIGNER_KEYPAIR" > "$KEYPAIR"
 bytes=$(tr -cd '0-9' < "$KEYPAIR" | wc -c | tr -d ' ')

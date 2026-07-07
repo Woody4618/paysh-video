@@ -34,7 +34,14 @@ routing:
 
 operator:
   currencies:
-    usd: ['USDC', 'USDT', 'CASH']
+    # ORDER MATTERS. pay uses the FIRST entry as the "primary" currency for the
+    # MPP charge challenge. Put the coin your callers actually hold first — most
+    # wallets hold USDC, so USDC leads. If the gateway only advertises one
+    # challenge and it's denominated in a coin the caller doesn't hold, the
+    # client rejects with "does not have enough balance for any advertised MPP
+    # challenge" — even though fee_payer sponsors the SOL fee. (That was the CASH
+    # vs USDC bug: keep USDC first.)
+    usd: ['USDC']
   # Flip to `mainnet` for the real deploy. `localnet` is for sandbox testing.
   network: mainnet
   fee_payer: true
