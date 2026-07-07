@@ -13,20 +13,21 @@
 # one here (e.g. :0.20.0) instead of `latest` for reproducible production builds.
 FROM ghcr.io/solana-foundation/pay:latest
 
-# The base image runs as non-root USER `pay` with WORKDIR /app. Copy our files
-# in with read/execute perms so the `pay` user can read the spec and run the
-# entrypoint (COPYed files are root-owned by default; --chmod makes them world
-# readable/executable so the non-root user can use them).
+# Copy our files in. --chmod makes them readable/executable regardless of user.
 COPY --chmod=0755 entrypoint.sh /app/entrypoint.sh
 COPY --chmod=0644 provider.yml /app/provider.yml
+
+# Vercel sets PORT=80 and requires the server to listen on it. The base image
+# runs as non-root USER `pay`, which CANNOT bind ports < 1024 — that made pay
+# fail to listen within the 15s startup timeout. Run as root so it can bind 80.
+# (Acceptable here: the container is single-purpose and network-isolated per
+# Vercel's runtime; the signing key is the sensitive asset and it lives in an
+# env-injected file, not tied to the container user.)
+USER root
 
 # The base image sets ENTRYPOINT ["pay"]; override it with our boot script.
 # The script validates env, substitutes the literal ${VAR} fields into a runtime
 # spec, and starts pay. Crucially, on ANY failure it does NOT exit — it logs the
 # reason and idles so the problem is visible in Vercel Runtime Logs instead of
 # crash-looping at boot as a stuck "Deploying outputs..." state.
-#
-# NOTE: the container runs as non-root, so it CANNOT bind ports < 1024. Vercel
-# injects a high $PORT; the entrypoint falls back to 8080 (not 80) if $PORT is
-# unset so it still works locally as non-root.
 ENTRYPOINT ["/bin/sh", "/app/entrypoint.sh"]

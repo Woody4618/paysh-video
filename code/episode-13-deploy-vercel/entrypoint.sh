@@ -16,14 +16,15 @@
 # so we substitute those here. GATEWAY_SHARED_SECRET is resolved natively by pay
 # via `value_from_env`, so it is only validated, not substituted.
 #
-# The base image is Debian bookworm running as non-root USER `pay`:
-#  - Non-root CANNOT bind ports < 1024, so we default PORT to 8080 (Vercel
-#    injects its own high $PORT in production).
+# Notes:
+#  - Vercel sets PORT=80 and requires the server to listen on it. The Dockerfile
+#    runs this container as root so pay can bind port 80 (the non-root base user
+#    could not, which caused a startup-timeout failure).
 #  - bookworm-slim has no `nc`, and bash cannot LISTEN via /dev/tcp, so a
 #    fallback HTTP server isn't reliable here — we log + idle instead, which
 #    keeps the container up and the error readable in Runtime Logs.
 
-PORT="${PORT:-8080}"
+PORT="${PORT:-80}"
 SPEC_SRC="/app/provider.yml"
 SPEC_RUNTIME="/tmp/provider.runtime.yml"
 KEYPAIR="/tmp/gateway-keypair.json"
