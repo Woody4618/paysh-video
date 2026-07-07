@@ -22,12 +22,16 @@ COPY provider.yml /app/provider.yml
 ENTRYPOINT ["/bin/sh", "-c"]
 
 # Boot sequence (single shell string because ENTRYPOINT is `sh -c`):
-#  1) Materialize the fee-payer keypair from an env var to /tmp. The `file`
-#     signer in provider.yml reads it from there. The key is NEVER baked into
-#     the image — it arrives at runtime as the PAY_SIGNER_KEYPAIR env var
-#     (a 64-byte Solana CLI JSON array, e.g. "[12,34,...]").
-#  2) Start the gateway bound to the platform port.
+#  1) Fail fast if required env vars are missing.
+#  2) Materialize the fee-payer keypair from PAY_SIGNER_KEYPAIR to /tmp. The
+#     `file` signer in provider.yml reads it from there. The key is NEVER baked
+#     into the image — it arrives at runtime (a 64-number Solana CLI JSON array).
+#  3) IMPORTANT: pay does NOT expand ${VAR} in the YAML for rpc_url / recipient /
+#     routing.url — those fields are read literally. So we substitute them into a
+#     runtime copy of the spec here, using the real env vars. (Only split
+#     `recipients` support native ${VAR} expansion; these fields do not.)
+#  4) Start the gateway bound to the platform port.
 #
-# Secrets (PAY_SIGNER_KEYPAIR, GATEWAY_SHARED_SECRET, UPSTREAM_ORIGIN,
-# PAY_RPC_URL, PAY_PAYMENT_RECIPIENT) are injected as Vercel env vars.
-CMD ["if [ -z \"$PAY_SIGNER_KEYPAIR\" ]; then echo 'FATAL: PAY_SIGNER_KEYPAIR env var is empty or unset. Set it to the full 64-number Solana keypair JSON array in the gateway project env vars, then redeploy.' >&2; exit 1; fi; printf '%s' \"$PAY_SIGNER_KEYPAIR\" > /tmp/gateway-keypair.json && exec pay server start /app/provider.yml --bind 0.0.0.0:${PORT:-80}"]
+# Env vars injected by Vercel: PAY_SIGNER_KEYPAIR, PAY_RPC_URL,
+# PAY_PAYMENT_RECIPIENT, UPSTREAM_ORIGIN, GATEWAY_SHARED_SECRET.
+CMD ["set -e; for v in PAY_SIGNER_KEYPAIR PAY_RPC_URL PAY_PAYMENT_RECIPIENT UPSTREAM_ORIGIN GATEWAY_SHARED_SECRET; do eval val=\\$$v; if [ -z \"$val\" ]; then echo \"FATAL: env var $v is empty or unset. Set it in the gateway project env vars, then redeploy.\" >&2; exit 1; fi; done; printf '%s' \"$PAY_SIGNER_KEYPAIR\" > /tmp/gateway-keypair.json; sed -e \"s|\\${PAY_RPC_URL}|$PAY_RPC_URL|g\" -e \"s|\\${PAY_PAYMENT_RECIPIENT}|$PAY_PAYMENT_RECIPIENT|g\" -e \"s|\\${UPSTREAM_ORIGIN}|$UPSTREAM_ORIGIN|g\" /app/provider.yml > /tmp/provider.runtime.yml; exec pay server start /tmp/provider.runtime.yml --bind 0.0.0.0:${PORT:-80}"]
