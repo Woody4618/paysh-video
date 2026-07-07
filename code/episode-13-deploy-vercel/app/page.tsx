@@ -121,7 +121,7 @@ export default function Home() {
               fontSize: 12,
             }}
           >
-            {`# sandbox (no real funds)\npay --sandbox curl \\\n  http://localhost:3000/pay/forecast\n\n# mainnet (real $0.01)\npay --mainnet curl \\\n  https://your-app.vercel.app/pay/forecast`}
+            {`# sandbox (no real funds)\npay --sandbox curl \\\n  http://localhost:3000/pay/forecast\n\n# mainnet (real $0.01)\npay --mainnet curl \\\n  https://paysh-video.vercel.app/pay/forecast`}
           </pre>
         </section>
       </div>

@@ -18,11 +18,10 @@ routing:
   # In production this is the app's own public origin. Locally it's the
   # `next dev` server (see README for the localnet test flow).
   #
-  # NOTE: pay does NOT natively expand ${VAR} here — routing.url is read
-  # literally. The container entrypoint substitutes ${UPSTREAM_ORIGIN} from the
-  # env var into a runtime copy of this spec before starting (see
-  # Dockerfile.vercel). For local runs, export UPSTREAM_ORIGIN and do the same,
-  # or just hardcode the URL.
+  # This is the ONE field the entrypoint substitutes: routing.url has no CLI flag
+  # or env fallback in pay, and pay does not expand ${VAR} in the YAML. The
+  # container replaces ${UPSTREAM_ORIGIN} at boot (see entrypoint.sh). For local
+  # runs, export UPSTREAM_ORIGIN and do the same, or just hardcode the URL.
   url: '${UPSTREAM_ORIGIN}/api/'
   auth:
     method: header
@@ -45,11 +44,12 @@ operator:
   # Flip to `mainnet` for the real deploy. `localnet` is for sandbox testing.
   network: mainnet
   fee_payer: true
-  # ${...} here is substituted by the container entrypoint (NOT by pay). pay
-  # reads these fields literally, so the placeholders must be replaced before
-  # startup — see Dockerfile.vercel.
-  rpc_url: '${PAY_RPC_URL}'
-  recipient: '${PAY_PAYMENT_RECIPIENT}'
+  # rpc_url and recipient are intentionally NOT set here:
+  #   - pay reads the RPC endpoint from the PAY_RPC_URL env var natively.
+  #   - the entrypoint passes the recipient via `--recipient $PAY_PAYMENT_RECIPIENT`.
+  # This avoids the old ${VAR}-in-YAML substitution hack (pay does not expand
+  # ${...} in these fields). The only field the entrypoint still rewrites in this
+  # file is routing.url, because routing has no CLI flag or env fallback.
   # Signer: how the gateway loads the fee-payer wallet.
   #
   # File signer (simple) — points at a 64-byte Solana CLI keypair JSON on disk.
