@@ -44,6 +44,22 @@ serve_error() {
   done
 }
 
+# 0) Sanitize env vars: strip ALL leading/trailing whitespace incl. newlines
+#    and carriage returns. Pasting values into the Vercel dashboard often adds a
+#    trailing newline; if it lands inside a substituted field it splits a YAML
+#    line and breaks parsing (e.g. url: 'https://…\n/api/'). Trim defensively.
+#    (These are single-line values — URL, pubkey, secret, keypair — so trimming
+#    surrounding whitespace is always safe.)
+trim() { printf '%s' "$1" | tr -d '\r\n' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//'; }
+PAY_RPC_URL=$(trim "$PAY_RPC_URL")
+PAY_PAYMENT_RECIPIENT=$(trim "$PAY_PAYMENT_RECIPIENT")
+UPSTREAM_ORIGIN=$(trim "$UPSTREAM_ORIGIN")
+GATEWAY_SHARED_SECRET=$(trim "$GATEWAY_SHARED_SECRET")
+export GATEWAY_SHARED_SECRET   # pay reads this one natively via value_from_env
+# PAY_SIGNER_KEYPAIR: strip only surrounding whitespace/newlines, keep the
+# JSON array intact (it has no internal newlines).
+PAY_SIGNER_KEYPAIR=$(trim "$PAY_SIGNER_KEYPAIR")
+
 # 1) Validate required env vars.
 for v in PAY_SIGNER_KEYPAIR PAY_RPC_URL PAY_PAYMENT_RECIPIENT UPSTREAM_ORIGIN GATEWAY_SHARED_SECRET; do
   eval val="\$$v"
