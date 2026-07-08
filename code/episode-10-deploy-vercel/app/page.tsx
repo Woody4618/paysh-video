@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 // The frontend. It calls the PAID endpoint at /pay/forecast (rewritten to the
 // gateway in next.config.js). The first hit returns 402; a pay-enabled client
@@ -74,11 +74,28 @@ function parseChallenge(headerValue: string): Charge | null {
   };
 }
 
+type LocationOption = { key: string; name: string };
+
 export default function Home() {
   const [location, setLocation] = useState("San Francisco");
+  const [locations, setLocations] = useState<LocationOption[]>([]);
   const [status, setStatus] = useState<string>("");
   const [charge, setCharge] = useState<Charge | null>(null);
   const [data, setData] = useState<Forecast | null>(null);
+
+  // Load the supported locations from the FREE /pay/locations endpoint. This
+  // needs no payment (no metering in provider.yml), so a plain browser fetch
+  // returns 200 and populates the dropdown — unlike /pay/forecast, which 402s.
+  useEffect(() => {
+    fetch("/pay/locations")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((body) => {
+        if (body?.locations?.length) setLocations(body.locations);
+      })
+      .catch(() => {
+        /* discovery is best-effort; the input still works if it fails */
+      });
+  }, []);
 
   async function getForecast() {
     setStatus("Requesting /pay/forecast …");
@@ -125,19 +142,41 @@ export default function Home() {
         <section style={{ flex: 1, minWidth: 300 }}>
           <h2 style={{ fontSize: 16, color: "#b79cff" }}>Try it from the browser</h2>
           <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
-            <input
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
-              style={{
-                flex: 1,
-                padding: "10px 12px",
-                background: "#0f141a",
-                border: "1px solid #263040",
-                borderRadius: 8,
-                color: "#e8edf2",
-                fontFamily: "inherit",
-              }}
-            />
+            {locations.length > 0 ? (
+              <select
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+                style={{
+                  flex: 1,
+                  padding: "10px 12px",
+                  background: "#0f141a",
+                  border: "1px solid #263040",
+                  borderRadius: 8,
+                  color: "#e8edf2",
+                  fontFamily: "inherit",
+                }}
+              >
+                {locations.map((l) => (
+                  <option key={l.key} value={l.name}>
+                    {l.name}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <input
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+                style={{
+                  flex: 1,
+                  padding: "10px 12px",
+                  background: "#0f141a",
+                  border: "1px solid #263040",
+                  borderRadius: 8,
+                  color: "#e8edf2",
+                  fontFamily: "inherit",
+                }}
+              />
+            )}
             <button
               onClick={getForecast}
               style={{

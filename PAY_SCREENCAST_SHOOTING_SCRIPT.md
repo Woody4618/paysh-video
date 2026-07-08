@@ -929,9 +929,11 @@ rm -P ./work-backup.json   # after moving it to 1Password / encrypted USB
 
 - 🎙️ "Every gateway so far has been running on localhost. That's great for
   building — but a gateway on `127.0.0.1` is a gateway nobody can pay. Today we
-  put one on the public internet, right next to a normal Next.js app, on one
-  Vercel project and one domain — and then we actually pay it, from the terminal
-  and from the browser."
+  put one on the public internet, right next to a normal Next.js app. On Vercel
+  these are two separate projects — the Next.js app on one domain, the gateway
+  container on another — joined by a `/pay/*` rewrite so the app domain acts as a
+  single front door. Then we actually pay it, from the terminal and from the
+  browser."
 - 🖥️ Split screen for 1 second: `localhost:1402` on the left,
   `paysh-video.vercel.app` on the right. Cut to terminal.
 
@@ -995,7 +997,7 @@ pay server start "$SPEC_RUNTIME" \
   idles instead of crash-looping — so the error is readable in Vercel's logs."
 - 🖥️ Lower-third: `the only rule: bind $PORT`
 
-### Scene 4 — One domain with Next.js (1:35–2:05)
+### Scene 4 — One front door with a Next.js rewrite (1:35–2:05)
 
 - ⌨️ Open `next.config.js`, highlight the rewrite:
 
@@ -1007,12 +1009,15 @@ async rewrites() {
 }
 ```
 
-- 🎙️ "My Next.js site is at the root; anything under `/pay` is rewritten to the
-  gateway container. One domain, both halves. The `gatewayBaseUrl()` helper just
-  trims stray whitespace and adds `https://` if it's missing — because a newline
-  pasted into a dashboard env var will otherwise break the build. Small
-  paper-cut, worth guarding."
-- 🖥️ Lower-third: `site at / · gateway at /pay/*`
+- 🎙️ "The app and the gateway are two separate Vercel projects on two domains —
+  Vercel won't run a Next.js app and a container in the same project. But this
+  rewrite hides that: anything under `/pay` on my app domain is proxied to the
+  gateway's own domain, so callers get a single front door. The gateway domain
+  still works directly too — both hit the same container. The `gatewayBaseUrl()`
+  helper just trims stray whitespace and adds `https://` if it's missing —
+  because a newline pasted into a dashboard env var will otherwise break the
+  build. Small paper-cut, worth guarding."
+- 🖥️ Lower-third: `two projects, two domains · /pay/* proxies to the gateway`
 
 ### Scene 5 — Deploy + inject secrets (2:05–2:45)
 
@@ -1089,7 +1094,7 @@ pay --mainnet curl https://paysh-video.vercel.app/pay/forecast
 
 - 🐳 `Dockerfile.vercel` — run `pay server start` on `$PORT`, autoscaled on Fluid compute
 - 🔀 `routing.type: proxy` — paywall in front of the app's own `/api/forecast` route
-- 🌐 One Vercel project, one domain — gateway under `/pay/*`, Next.js at the root
+- 🌐 Two Vercel projects/domains — a Next.js rewrite proxies the app's `/pay/*` to the gateway domain (single front door)
 - 🔐 Secrets as env vars (never in the image); `file` signer for the demo, KMS for prod
 - 💳 Live demo — pay the mainnet gateway from the terminal (Touch ID) and hit the paywall from the browser
 

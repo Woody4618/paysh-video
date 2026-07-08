@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server.js";
+import { buildForecast, listLocations, resolveLocation } from "../locations-data";
 
 // This is the ACTUAL API — the thing callers are paying for.
 //
@@ -32,25 +33,22 @@ export async function GET(req: NextRequest) {
     return unauthorized();
   }
 
-  const location = req.nextUrl.searchParams.get("location") ?? "San Francisco";
+  // Default to San Francisco when no location is given (keeps the bare
+  // /forecast demo working). An explicit but unknown location is a 404 so the
+  // `location` parameter visibly matters — discover valid ones at /locations.
+  const raw = req.nextUrl.searchParams.get("location");
+  const key = resolveLocation(raw ?? "San Francisco");
 
-  // A real implementation would call a weather provider or read a DB here.
-  // We return deterministic demo data so the episode is self-contained.
-  const now = new Date();
-  const daily = Array.from({ length: 7 }, (_, i) => {
-    const day = new Date(now.getTime() + i * 86_400_000);
-    return {
-      date: day.toISOString().slice(0, 10),
-      high_c: 18 + ((i * 3) % 7),
-      low_c: 9 + ((i * 2) % 5),
-      condition: ["sunny", "clear", "partly cloudy", "sunny", "cloudy"][i % 5],
-    };
-  });
+  if (!key) {
+    return NextResponse.json(
+      {
+        error: "unknown_location",
+        message: `No forecast for "${raw}". See /locations for supported locations.`,
+        available: listLocations().map((l) => l.name),
+      },
+      { status: 404 },
+    );
+  }
 
-  return NextResponse.json({
-    location,
-    generated_at: now.toISOString(),
-    current: { temp_c: 24, condition: "sunny", wind_kph: 9 },
-    forecast: daily,
-  });
+  return NextResponse.json(buildForecast(key));
 }

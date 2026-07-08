@@ -15,18 +15,16 @@
 
 ### Scene 1 — Cold open (0:00–0:20)
 
-- 🎙️ "Every gateway so far has been running on localhost. That's great for
-  building — but a gateway on `127.0.0.1` is a gateway nobody can pay. Today we
-  put one on the public internet, right next to a normal Next.js app, on one
-  Vercel project and one domain — and then we actually pay it, from the terminal
-  and from the browser."
+- 🎙️ "Lets build a public weather report API and deploy it. Every gateway so far has been running on localhost. That's great and easy for building — but a local host gateway nobody can pay. Today we put one on the public internet, right next to a normal Next.js app. On Vercel these are two separate projects — the Next.js app on one domain, the gateway container on another — but a single rewrite makes the app domain act as one front door. And then we actually pay it, from the terminal, let claude use it to get the current weather report, and debug it from the browser."
+
 - 🖥️ Split screen for 1 second: `localhost:1402` on the left,
   `paysh-video.vercel.app` on the right. Cut to terminal.
 
 ### Scene 2 — The app and the API (0:20–0:55)
 
-- ⌨️ Show `app/api/forecast/route.ts` (the real API) and `app/page.tsx` (the
-  frontend) side by side, then open `provider.yml`'s `routing` block:
+This is what we will build. Here i can request the weather report and i can also directly pay it in the browser. 
+
+In the last videos we used method   routing type: respond now we will use proxy routing type: proxy and url: ${UPSTREAM_ORIGIN}/api/ Where upstream api will actually be our weather api here at paysh-video.vercel.app/ 
 
 ```yaml
 routing:
@@ -83,7 +81,7 @@ pay server start "$SPEC_RUNTIME" \
   idles instead of crash-looping — so the error is readable in Vercel's logs."
 - 🖥️ Lower-third: `the only rule: bind $PORT`
 
-### Scene 4 — One domain with Next.js (1:35–2:05)
+### Scene 4 — One front door with a Next.js rewrite (1:35–2:05)
 
 - ⌨️ Open `next.config.js`, highlight the rewrite:
 
@@ -95,12 +93,15 @@ async rewrites() {
 }
 ```
 
-- 🎙️ "My Next.js site is at the root; anything under `/pay` is rewritten to the
-  gateway container. One domain, both halves. The `gatewayBaseUrl()` helper just
-  trims stray whitespace and adds `https://` if it's missing — because a newline
-  pasted into a dashboard env var will otherwise break the build. Small
-  paper-cut, worth guarding."
-- 🖥️ Lower-third: `site at / · gateway at /pay/*`
+- 🎙️ "The app and the gateway are two separate Vercel projects on two domains —
+  Vercel won't run a Next.js app and a container in the same project. But this
+  rewrite hides that: anything under `/pay` on my app domain is proxied to the
+  gateway's own domain, so callers get a single front door. The gateway domain
+  still works directly too — both hit the same container. The `gatewayBaseUrl()`
+  helper just trims stray whitespace and adds `https://` if it's missing —
+  because a newline pasted into a dashboard env var will otherwise break the
+  build. Small paper-cut, worth guarding."
+- 🖥️ Lower-third: `two projects, two domains · /pay/* proxies to the gateway`
 
 ### Scene 5 — Deploy + inject secrets (2:05–2:45)
 
@@ -177,7 +178,7 @@ pay --mainnet curl https://paysh-video.vercel.app/pay/forecast
 
 - 🐳 `Dockerfile.vercel` — run `pay server start` on `$PORT`, autoscaled on Fluid compute
 - 🔀 `routing.type: proxy` — paywall in front of the app's own `/api/forecast` route
-- 🌐 One Vercel project, one domain — gateway under `/pay/*`, Next.js at the root
+- 🌐 Two Vercel projects/domains — a Next.js rewrite proxies the app's `/pay/*` to the gateway domain (single front door)
 - 🔐 Secrets as env vars (never in the image); `file` signer for the demo, KMS for prod
 - 💳 Live demo — pay the mainnet gateway from the terminal (Touch ID) and hit the paywall from the browser
 
@@ -223,9 +224,10 @@ pay --mainnet curl https://paysh-video.vercel.app/pay/forecast
 
 > A localhost gateway is a gateway nobody can pay. In this episode we take a
 > Next.js app with a real API route, put a paid `pay` gateway in front of it, and
-> deploy both to the public internet on Vercel — one domain — then pay it for real
-> on mainnet: one command from the terminal with Touch ID, and the paywall shown
-> live in the browser.
+> deploy both to the public internet on Vercel — as two projects (app + gateway
+> container) on two domains, joined by a `/pay/*` rewrite so callers get one
+> front door — then pay it for real on mainnet: one command from the terminal
+> with Touch ID, and the paywall shown live in the browser.
 
 Links
 Documentation: https://pay.sh/docs/accept-payments/deploy

@@ -1,24 +1,37 @@
 # Episode 10 — Deploy a Paid Gateway (Vercel + Next.js)
 
-A single Next.js app that contains **both** a real API and its frontend, with a
-**pay gateway** sitting in front of the API as a 402 paywall — all on one Vercel
-project, one domain, using Vercel's
+A Next.js app that contains a real API and its frontend, plus a **pay gateway**
+sitting in front of the API as a 402 paywall, using Vercel's
 [Run any Dockerfile](https://vercel.com/blog/dockerfile-on-vercel) container
 support.
+
+> **Two Vercel projects, two domains.** Vercel can't run a Next.js app and a
+> Dockerfile container in the *same* project, so this ships as **two
+> deployments**: the Next.js app (e.g. `paysh-video.vercel.app`) and the gateway
+> container (e.g. `paysh-video-gateway.vercel.app`). A `/pay/*` rewrite in
+> `next.config.js` proxies the app domain to the gateway domain, so callers can
+> use the app domain as a single front door — but the gateway domain is also
+> directly reachable, and both hit the same container.
 
 ## Architecture
 
 ```
-  Browser ─► Next.js page  (/)                         app/page.tsx
-                │  "Get forecast"
+  Browser ─► Next.js page  (/)                          app project · domain A
+                │  "Get forecast"                        (paysh-video.vercel.app)
                 ▼
-           /pay/forecast   ─► pay gateway (402 paywall)   Dockerfile.vercel + provider.yml
-                                    │  after payment, + shared-secret header
-                                    ▼
-                              /api/forecast              app/api/forecast/route.ts  ← the real API
+        app /pay/forecast ──(next.config.js rewrite)──►┐
+                                                        │
+        gateway /forecast  ◄── also directly reachable ─┘   gateway project · domain B
+             (402 paywall)   Dockerfile.vercel + provider.yml (…-gateway.vercel.app)
+                  │  after payment, + shared-secret header
+                  ▼
+        app /api/forecast   (UPSTREAM_ORIGIN = domain A)  app/api/forecast/route.ts ← the real API
 ```
 
-Everything lives in one repo and ships as one `vercel deploy`.
+The app and the gateway are **two `vercel deploy`s** (two projects). They are
+joined by two env vars: the app's `GATEWAY_URL` points at the gateway domain
+(for the `/pay/*` rewrite), and the gateway's `UPSTREAM_ORIGIN` points back at
+the app domain (so it can proxy to `/api/forecast`).
 
 ## Files
 
@@ -159,8 +172,9 @@ in your pay-skills listing (Episode 11).
 ## The Vercel-specific bits
 
 Vercel's [Run any Dockerfile](https://vercel.com/blog/dockerfile-on-vercel)
-makes the gateway container a first-class citizen beside the Next.js app: one
-push, one domain, autoscaled on Fluid compute.
+makes the gateway container a first-class citizen — but as its **own** project
+and domain (Vercel won't co-host a Next.js app and a container in one project).
+It autoscales on Fluid compute and is joined to the app by the `/pay/*` rewrite.
 
 Two things to get right because Vercel containers are **stateless & autoscaled**:
 

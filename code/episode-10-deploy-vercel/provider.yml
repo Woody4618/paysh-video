@@ -87,6 +87,12 @@ endpoints:
     path: 'health'
     description: 'Health check. Free.'
 
+  # Free: discovery list of supported locations. No metering = no paywall, so
+  # callers can learn the valid `?location=` values before paying for a forecast.
+  - method: GET
+    path: 'locations'
+    description: 'List supported forecast locations. Free.'
+
   # Paid: $0.01 per forecast lookup.
   - method: GET
     path: 'forecast'
