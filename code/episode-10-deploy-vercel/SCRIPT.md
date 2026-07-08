@@ -50,36 +50,40 @@ routing:
 ```docker
 FROM ghcr.io/solana-foundation/pay:latest
 
-COPY --chmod=0755 entrypoint.sh /app/entrypoint.sh
-COPY --chmod=0644 provider.yml  /app/provider.yml
+WORKDIR /app
+COPY provider.yml /app/provider.yml
 
 # Bind the privileged $PORT (Vercel uses 80); the base image's `pay` user can't.
 USER root
 
-# Base image sets ENTRYPOINT ["pay"]; replace it with our boot script.
-ENTRYPOINT ["/bin/sh", "/app/entrypoint.sh"]
+# Base image sets ENTRYPOINT ["pay"]; --bind defaults to 0.0.0.0:$PORT.
+CMD ["server", "start", "/app/provider.yml"]
 ```
 
 - 🎙️ "The gateway is just a container that listens on a port. Vercel's only rule
-  is: listen on `$PORT`. I pin the official pay image, copy in my spec and a small
-  boot script, and run as root so it can bind port 80. The same image runs on
-  Cloud Run, Fly, or a VM — Vercel isn't special, it's just the host I'm picking."
-- ⌨️ Flash `entrypoint.sh` and call out what it does — the honest part:
+  is: listen on `$PORT` — and pay's `--bind` already defaults to that. So there's
+  no script here: copy the spec, run as root so it can bind port 80, done. The
+  same image runs on Cloud Run, Fly, or a VM — Vercel isn't special, it's just the
+  host I'm picking."
+- ⌨️ Back in `provider.yml`, call out how config reaches pay — the honest part:
 
-```sh
-# entrypoint.sh (abridged)
-pay server start "$SPEC_RUNTIME" \
-  --bind "0.0.0.0:$PORT" \
-  --rpc-url "$PAY_RPC_URL" \
-  --recipient "$PAY_PAYMENT_RECIPIENT"
+```yaml
+operator:
+  rpc_url: '${PAY_RPC_URL}'          # expanded from the environment
+  recipient: '${PAY_PAYMENT_RECIPIENT}'
+  signer:
+    backend: env                      # keypair read straight from an env var
+    value_from_env: PAY_OPERATOR_KEYPAIR
+routing:
+  url: '${UPSTREAM_ORIGIN}/api/'     # proxy target, also from the environment
 ```
 
-- 🎙️ "pay reads most config straight from flags and env: the RPC and recipient go
-  in as flags, the shared secret is read from the environment. The one thing it
-  can't source itself is the proxy target, so the script drops `UPSTREAM_ORIGIN`
-  into the spec at boot. And if anything's misconfigured, it logs the reason and
-  idles instead of crash-looping — so the error is readable in Vercel's logs."
-- 🖥️ Lower-third: `the only rule: bind $PORT`
+- 🎙️ "pay expands `${VAR}` in the spec straight from the environment — the RPC,
+  the recipient, and the proxy target all come from env vars. And the fee-payer
+  keypair uses the `env` signer backend: pay reads it into memory from
+  `PAY_OPERATOR_KEYPAIR` — never written to disk, never baked into the image.
+  Nothing sensitive lives in the container; it's all injected at runtime."
+- 🖥️ Lower-third: `the only rule: bind $PORT · config is all env vars`
 
 ### Scene 4 — One front door with a Next.js rewrite (1:35–2:05)
 
@@ -116,13 +120,46 @@ vercel deploy
   into the image."
 - 🖥️ Show the Vercel env-var screen briefly:
   `GATEWAY_SHARED_SECRET`, `UPSTREAM_ORIGIN`, `GATEWAY_URL`, `PAY_RPC_URL`,
-  `PAY_PAYMENT_RECIPIENT`, `PAY_SIGNER_KEYPAIR`.
-- 🎙️ "For this demo the fee-payer wallet is a `file` signer — the keypair comes in
-  as `PAY_SIGNER_KEYPAIR` and the container writes it to a temp file at boot.
-  Treat that as a *hot wallet*: keep a few dollars on it, sweep the rest, and move
-  to a KMS signer before it holds anything real. KMS needs a custom pay build, so
-  it's not in the stock image — I'll cover that when we harden this."
+  `PAY_PAYMENT_RECIPIENT`, `PAY_OPERATOR_KEYPAIR`.
+- 🎙️ "For this demo the fee-payer wallet uses the `env` signer — the keypair comes
+  in as `PAY_OPERATOR_KEYPAIR` and pay reads it straight into memory, never to
+  disk. Treat it as a *hot wallet*: keep a few dollars on it, sweep the rest, and
+  move to a KMS signer before it holds anything real. KMS needs a custom pay
+  build, so it's not in the stock image — I'll cover that when we harden this."
 - 🖥️ Lower-third: `hot wallet for the demo → KMS before real money`
+
+### Scene 5b — Run the same container locally (optional B-roll)
+
+- 🎙️ "Before I trust the deploy, I run the *exact same container* on my machine.
+  Same image, same spec, same env vars — just pointed at my local Next.js instead
+  of the production origin."
+- ⌨️ Two terminals. First, the app; second, the gateway:
+
+```sh
+# terminal 1 — the Next.js app (frontend + /api/forecast)
+npm run dev            # http://localhost:3000
+
+# terminal 2 — build once, then run the gateway container
+npm run gateway:build
+npm run gateway        # http://localhost:1402
+```
+
+- 🎙️ "`npm run gateway` is just a wrapper around `docker run` with
+  `--env-file .env.local`. The only twist for local: inside a container,
+  `localhost` isn't the host — so `UPSTREAM_ORIGIN` points at
+  `host.docker.internal:3000`. That's the one line the script overrides."
+- ⌨️ Prove it, same as production:
+
+```sh
+curl http://localhost:1402/locations                 # free discovery
+pay --mainnet curl "http://localhost:1402/forecast?location=Berlin"
+```
+
+- 🖥️ Lower-third: `same image locally · npm run gateway`
+- 🎙️ "Why docker and not a bare `pay server start`? The `env` signer and `${VAR}`
+  expansion ship in the container image; if your locally-installed `pay` is older
+  it'll reject `backend: env`. Running the image sidesteps version drift — you're
+  testing exactly what Vercel will run."
 
 ### Scene 6 — Demo: pay it from the terminal (2:45–3:40)
 
@@ -179,7 +216,7 @@ pay --mainnet curl https://paysh-video.vercel.app/pay/forecast
 - 🐳 `Dockerfile.vercel` — run `pay server start` on `$PORT`, autoscaled on Fluid compute
 - 🔀 `routing.type: proxy` — paywall in front of the app's own `/api/forecast` route
 - 🌐 Two Vercel projects/domains — a Next.js rewrite proxies the app's `/pay/*` to the gateway domain (single front door)
-- 🔐 Secrets as env vars (never in the image); `file` signer for the demo, KMS for prod
+- 🔐 Secrets as env vars (never in the image); `env` signer for the demo, KMS for prod
 - 💳 Live demo — pay the mainnet gateway from the terminal (Touch ID) and hit the paywall from the browser
 
 ### Accuracy notes
@@ -189,14 +226,20 @@ pay --mainnet curl https://paysh-video.vercel.app/pay/forecast
   *after* payment via `routing.auth.value_from_env` and validated by the route.
   Unpaid requests 402 and never reach the API; direct `/api/forecast` hits 403.
 - **`endpoints[]` is also an allowlist** — unlisted method+path returns 404.
-- **How config reaches pay (matches `entrypoint.sh`):** `--rpc-url` and
-  `--recipient` are CLI flags; `GATEWAY_SHARED_SECRET` is read from the env via
-  `value_from_env`; only `routing.url` (`UPSTREAM_ORIGIN`) is substituted into the
-  spec at boot, because it has no flag or env fallback.
-- **Signer is `file`, not KMS, in this build.** The stock
+- **How config reaches pay (no entrypoint script):** pay expands `${VAR}` in the
+  spec from the environment at load time — `PAY_RPC_URL` (`rpc_url`),
+  `PAY_PAYMENT_RECIPIENT` (`recipient`), and `UPSTREAM_ORIGIN` (`routing.url`) are
+  all env vars. `GATEWAY_SHARED_SECRET` is read via `value_from_env`. No CLI flags,
+  no boot-time substitution, no `entrypoint.sh`.
+- **Signer is `env`, not KMS, in this build.** The stock
   `ghcr.io/solana-foundation/pay:latest` image is not compiled with `gcp_kms`, so
-  the demo uses a `file` signer fed by `PAY_SIGNER_KEYPAIR` (a hot wallet).
-  Migrate to KMS (custom build, or run on Cloud Run) before it holds real value.
+  the demo uses the `env` signer backend (`value_from_env: PAY_OPERATOR_KEYPAIR`):
+  pay reads the keypair into memory, never to disk. Still a hot wallet — migrate
+  to KMS (custom build, or run on Cloud Run) before it holds real value.
+- **`env` signer + `${VAR}` need the current image.** These landed in the
+  `ghcr.io/solana-foundation/pay:latest` container; an older locally-installed
+  `pay` may reject `backend: env`. For a byte-identical local run, run the image
+  (`npm run gateway`) rather than a bare `pay server start`.
 - **Currency ordering matters.** `operator.currencies.usd` leads with the coin
   callers hold (USDC here). If the gateway advertises a currency the payer wallet
   doesn't hold, the client rejects with "not enough balance for any advertised MPP

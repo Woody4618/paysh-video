@@ -2,32 +2,30 @@
 # Docs: https://vercel.com/blog/dockerfile-on-vercel
 #
 # This container is JUST the paywall. The frontend and the real API
-# (/api/forecast) are the Next.js app in this same project. The gateway proxies
-# paid requests to that app's /api/forecast route (see provider.yml).
+# (/api/forecast) are the Next.js app (a separate Vercel project/domain). The
+# gateway proxies paid requests to that app's /api/forecast route (routing.url
+# in provider.yml, fed by the UPSTREAM_ORIGIN env var).
 #
-# The only hard rule Vercel imposes: the server must listen on $PORT
-# (defaults to 80). pay satisfies that via `--bind 0.0.0.0:${PORT}`.
+# No entrypoint script needed: pay expands ${VAR} in provider.yml from the
+# environment and reads the fee-payer keypair from PAY_OPERATOR_KEYPAIR via the
+# `env` signer backend. All config comes from Vercel project env vars:
+#   UPSTREAM_ORIGIN, GATEWAY_SHARED_SECRET, PAY_RPC_URL,
+#   PAY_PAYMENT_RECIPIENT, PAY_OPERATOR_KEYPAIR
 
-# The published image currently ships only the `latest` tag (there is no
-# versioned tag yet). Once the project publishes immutable version tags, pin to
-# one here (e.g. :0.20.0) instead of `latest` for reproducible production builds.
+# The published image ships only the `latest` tag today. Once immutable version
+# tags exist, pin one here (e.g. :0.21.0) for reproducible production builds.
 FROM ghcr.io/solana-foundation/pay:latest
 
-# Copy our files in. --chmod makes them readable/executable regardless of user.
-COPY --chmod=0755 entrypoint.sh /app/entrypoint.sh
-COPY --chmod=0644 provider.yml /app/provider.yml
+WORKDIR /app
+COPY provider.yml /app/provider.yml
 
-# Vercel sets PORT=80 and requires the server to listen on it. The base image
-# runs as non-root USER `pay`, which CANNOT bind ports < 1024 — that made pay
-# fail to listen within the 15s startup timeout. Run as root so it can bind 80.
-# (Acceptable here: the container is single-purpose and network-isolated per
-# Vercel's runtime; the signing key is the sensitive asset and it lives in an
-# env-injected file, not tied to the container user.)
+# Vercel sets PORT=80 and requires the server to listen on it. pay's --bind
+# already defaults to 0.0.0.0:$PORT when PORT is set, so no flag is needed. But
+# the base image runs as non-root USER `pay`, which CANNOT bind ports < 1024 —
+# run as root so it can bind 80. (Acceptable: the container is single-purpose;
+# the sensitive asset is the signing key, which lives in an env var, not tied
+# to the container user.)
 USER root
 
-# The base image sets ENTRYPOINT ["pay"]; override it with our boot script.
-# The script validates env, substitutes the literal ${VAR} fields into a runtime
-# spec, and starts pay. Crucially, on ANY failure it does NOT exit — it logs the
-# reason and idles so the problem is visible in Vercel Runtime Logs instead of
-# crash-looping at boot as a stuck "Deploying outputs..." state.
-ENTRYPOINT ["/bin/sh", "/app/entrypoint.sh"]
+# The base image sets ENTRYPOINT ["pay"], so CMD is just the subcommand + args.
+CMD ["server", "start", "/app/provider.yml"]

@@ -5,7 +5,9 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "gateway:build": "docker build -f Dockerfile.vercel -t weather-pro-gateway:local .",
+    "gateway": "docker run --rm -p 1402:1402 --env-file .env.local -e PORT=1402 -e UPSTREAM_ORIGIN=http://host.docker.internal:3000 weather-pro-gateway:local"
   },
   "dependencies": {
     "next": "15.5.20",
