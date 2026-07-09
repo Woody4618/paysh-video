@@ -15,7 +15,10 @@
 
 ### Scene 1 — Cold open (0:00–0:20)
 
-- 🎙️ "Lets build a public weather report API and deploy it. Every gateway so far has been running on localhost. That's great and easy for building — but a local host gateway nobody can pay. Today we put one on the public internet, right next to a normal Next.js app. On Vercel these are two separate projects — the Next.js app on one domain, the gateway container on another — but a single rewrite makes the app domain act as one front door. And then we actually pay it, from the terminal, let claude use it to get the current weather report, and debug it from the browser."
+Lets build a public weather report API, deploy it to the public internet and let ppl pay for it using pay.sh. Every gateway we have build so far has been running on localhost. That's great and easy and very convenient for building — but a local host gateway noone can actually pay us. Today we put one on the public internet. We will deploy the pay gateway as a docker container and the api as a nextjs project and then we will connect the two. When it works we gonna let claude use it to get the current weather report for hamburg and maybe let him check if its currently warmer in hamburg or New York.  
+In this video we gonna use vercel to deploy because its a very easy way to have a docker container and an API hosted from the same repo with continues integration. 
+But you can basically run it everywhere else where you can run docker images. You can for exampel use GCP with KMS and you can also use terraform to deploy it. For that see the docs. 
+But now lets see how we can deploy it in vercel. 
 
 - 🖥️ Split screen for 1 second: `localhost:1402` on the left,
   `paysh-video.vercel.app` on the right. Cut to terminal.

@@ -12,8 +12,9 @@ consumes.
 > repo. This folder mirrors the registry's `providers/<operator>/<name>/` layout
 > so you can rehearse the flow before cloning.
 
-`providers/solana-foundation/prod-gateway/PAY.md` is a small, self-contained
-example listing (a `v1/reports/usage` endpoint at $0.01). Registry paths:
+`providers/solana-foundation/weather-pro/PAY.md` is the listing for the
+**Weather Pro** gateway we deployed in Episode 10 — a free `locations` list plus a
+paid `forecast` endpoint at $0.01. Registry paths:
 
 ```text
 providers/<operator>/<name>/PAY.md           # you operate the API directly
@@ -23,25 +24,27 @@ providers/<operator>/<origin>/<name>/PAY.md  # your gateway proxies another prov
 The `name:` field must match the parent directory name. Sidecar files such as
 `openapi.json` live in the same directory as `PAY.md`.
 
-## Deploy the gateway first
+## The gateway is already deployed
 
 `service_url` must be a **live, public HTTPS domain** — the catalog probe calls
-it, so localhost won't do. Deploy the gateway you built in the earlier episodes
-as a container before listing it:
+it, so localhost won't do. We don't need to deploy anything new: **Episode 10
+already put Weather Pro on Vercel** at `https://paysh-video-gateway.vercel.app`,
+which serves `/health`, `/locations` (free), `/forecast` (paid $0.01), and its own
+`/openapi.json`.
 
 ```sh
-# One Cloud Run service per provider spec, bound to the platform port.
-pay server start /app/providers/prod-gateway.yml \
-  --bind 0.0.0.0:8080 \
-  --openapi /app/providers/prod-gateway.openapi.json
+# Confirm it's live before listing it.
+curl -fsS https://paysh-video-gateway.vercel.app/health
+curl -fsS https://paysh-video-gateway.vercel.app/openapi.json | jq '.info.title'
 ```
 
-Use the official image `ghcr.io/solana-foundation/pay:<version>` (pin the tag),
-inject upstream API keys / RPC URLs / recipient config from your cloud secret
-manager, and sign with a KMS-backed key (`operator.signer.backend: gcp-kms`) in
-production. The resulting domain (e.g. `https://prod-gateway.example.com`) is the
-`service_url` you put in the listing. See the bundled
-`skills/pay/references/monetize-api.md` → "Production Deployment".
+Episode 10 uses the official image `ghcr.io/solana-foundation/pay:latest`, injects
+RPC URL / recipient / keypair from Vercel project env vars, and signs with the
+`env` signer for the demo. For production, migrate to a KMS-backed key
+(`operator.signer.backend: gcp-kms`) — see the bundled
+`skills/pay/references/monetize-api.md` → "Production Deployment" and the Cloud Run
+deploy guide. The domain `https://paysh-video-gateway.vercel.app` is the
+`service_url` in the listing.
 
 ## Quick start
 
@@ -50,27 +53,26 @@ production. The resulting domain (e.g. `https://prod-gateway.example.com`) is th
 git clone git@github.com:<you>/pay-skills.git
 cd pay-skills
 
-# 2. Scaffold a provider entry from a gateway's LIVE OpenAPI document.
+# 2. Scaffold a provider entry from the gateway's LIVE OpenAPI document.
 #    scaffold fetches the URL over the network, so it must be reachable — a fake
 #    host fails with "error sending request", and local paths / file:// are not
-#    supported. Point it at your deployed gateway; the example below uses an
-#    already-live gateway so the command runs as-is.
-#    The leaf of the FQN ("prod-gateway") becomes name: and the directory.
-pay catalog scaffold solana-foundation/prod-gateway \
-  https://texttospeech.google.gateway-402.com/openapi.json \
+#    supported. Our Episode 10 gateway is live, so this runs as-is.
+#    The leaf of the FQN ("weather-pro") becomes name: and the directory.
+pay catalog scaffold solana-foundation/weather-pro \
+  https://paysh-video-gateway.vercel.app/openapi.json \
   --output-dir providers
 
-# 3. Finish providers/solana-foundation/prod-gateway/PAY.md:
-#    - fill the TODO category and use_case, and set service_url to your domain
+# 3. Finish providers/solana-foundation/weather-pro/PAY.md:
+#    - fill the TODO category (data) and use_case, set service_url to the domain
 #    - scaffold writes `openapi.url`, but the registry rejects URLs, so snapshot
 #      the spec and switch to `openapi.path`:
-cd providers/solana-foundation/prod-gateway
-curl -fsSL https://<your-gateway>/openapi.json -o openapi.json
+cd providers/solana-foundation/weather-pro
+curl -fsSL https://paysh-video-gateway.vercel.app/openapi.json -o openapi.json
 python3 -m json.tool openapi.json openapi.json   # pretty-print for reviewable diffs
 cd -
 
 # 4. Validate the provider. This is the check you run most often.
-pay catalog check providers/solana-foundation/prod-gateway/PAY.md
+pay catalog check providers/solana-foundation/weather-pro/PAY.md
 
 # 5. Optional: walk the whole registry without live probes.
 pay catalog check . --no-probe
@@ -78,14 +80,13 @@ pay catalog check . --no-probe
 
 If `pay` is not installed, use `npx @solana/pay catalog ...`.
 
-> **Note:** `prod-gateway.example.com` is a placeholder. It means two things:
-> (1) `pay catalog scaffold` can't fetch from it — scaffold needs a **live** URL,
-> so the Quick Start above points at an already-live gateway and you swap in your
-> own deployed domain; and (2) the committed example passes `pay catalog check
-> --no-probe` (static) but a live `-v` probe will fail until `service_url` points
-> at a real deployment.
+> **Note:** the committed `weather-pro` listing points at a **real, live** gateway
+> (`https://paysh-video-gateway.vercel.app`), so both `pay catalog check --no-probe`
+> (static) and the live `-v` probe should pass — the probe expects a Solana 402 on
+> `/forecast` (USDC) and free `/health` + `/locations`. If that deployment is ever
+> taken down, only the live `-v` probe fails; `--no-probe` still passes.
 
-## Validation commands (verified against `pay 0.20.0`)
+## Validation commands (verified against `pay 0.21.0`)
 
 | Command | Use |
 | --- | --- |
@@ -105,8 +106,8 @@ If `pay` is not installed, use `npx @solana/pay catalog ...`.
 
 ```sh
 pay skills update
-pay skills search "usage reports"
-pay skills show solana-foundation/prod-gateway
+pay skills search "weather forecast"
+pay skills show solana-foundation/weather-pro
 ```
 
 ## Frontmatter rules

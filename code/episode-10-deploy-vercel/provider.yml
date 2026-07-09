@@ -81,22 +81,26 @@ operator:
 # NOTE: `path` is relative to routing.url, so `forecast` maps to
 # `${UPSTREAM_ORIGIN}/api/forecast`.
 endpoints:
-  # Free: lets agents/humans probe the gateway without paying.
+  # Free (no metering). NOTE: `description` becomes the OpenAPI operation
+  # `summary` in the gateway's synthesized /openapi.json — and the pay-skills
+  # catalog validator requires summaries to be verb-first, 24-63 chars, and free
+  # of cost/marketing words ("free", "$0.01"). Keep the free/paid intent in
+  # these comments, not in the description text.
   - method: GET
     path: 'health'
-    description: 'Health check. Free.'
+    description: 'Check the Weather Pro service health and availability status.'
 
-  # Free: discovery list of supported locations. No metering = no paywall, so
-  # callers can learn the valid `?location=` values before paying for a forecast.
+  # Free (no metering) — discovery list so callers can learn valid `?location=`
+  # values before paying for a forecast.
   - method: GET
     path: 'locations'
-    description: 'List supported forecast locations. Free.'
+    description: 'List the locations supported for weather forecast lookups.'
 
-  # Paid: $0.01 per forecast lookup.
+  # Paid: $0.01 per forecast lookup (price lives in metering below, not the text).
   - method: GET
     path: 'forecast'
     resource: 'forecast'
-    description: 'Current + 7-day forecast for a location. $0.01 per request.'
+    description: 'Fetch current conditions and 7-day forecast for a location.'
     metering:
       dimensions:
         - direction: usage
