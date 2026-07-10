@@ -29,13 +29,17 @@ The `name:` field must match the parent directory name. Sidecar files such as
 `service_url` must be a **live, public HTTPS domain** — the catalog probe calls
 it, so localhost won't do. We don't need to deploy anything new: **Episode 10
 already put Weather Pro on Vercel** at `https://paysh-video-gateway.vercel.app`,
-which serves `/health`, `/locations` (free), `/forecast` (paid $0.01), and its own
-`/openapi.json`.
+which serves `/health`, `/locations` (free), and `/forecast` (paid $0.01).
+
+The OpenAPI spec we publish is **not** the gateway's auto-synthesized doc — it's
+the richer document the Episode 10 Next.js app generates from its Zod schemas via
+`openapi-gen` (full request params + response bodies). We commit that generated
+`public/openapi.json` as the listing's `openapi.path` sidecar.
 
 ```sh
 # Confirm it's live before listing it.
 curl -fsS https://paysh-video-gateway.vercel.app/health
-curl -fsS https://paysh-video-gateway.vercel.app/openapi.json | jq '.info.title'
+curl -fsS https://paysh-video-gateway.vercel.app/locations
 ```
 
 Episode 10 uses the official image `ghcr.io/solana-foundation/pay:latest`, injects
@@ -53,28 +57,30 @@ deploy guide. The domain `https://paysh-video-gateway.vercel.app` is the
 git clone git@github.com:<you>/pay-skills.git
 cd pay-skills
 
-# 2. Scaffold a provider entry from the gateway's LIVE OpenAPI document.
-#    scaffold fetches the URL over the network, so it must be reachable — a fake
-#    host fails with "error sending request", and local paths / file:// are not
-#    supported. Our Episode 10 gateway is live, so this runs as-is.
-#    The leaf of the FQN ("weather-pro") becomes name: and the directory.
+# 2. Scaffold the PAY.md skeleton. The URL just seeds title + endpoint list;
+#    scaffold fetches it over the network, so it must be reachable. The leaf of
+#    the FQN ("weather-pro") becomes name: and the directory.
 pay catalog scaffold solana-foundation/weather-pro \
   https://paysh-video-gateway.vercel.app/openapi.json \
   --output-dir providers
 
-# 3. Finish providers/solana-foundation/weather-pro/PAY.md:
-#    - fill the TODO category (data) and use_case, set service_url to the domain
-#    - scaffold writes `openapi.url`, but the registry rejects URLs, so snapshot
-#      the spec and switch to `openapi.path`:
-cd providers/solana-foundation/weather-pro
-curl -fsSL https://paysh-video-gateway.vercel.app/openapi.json -o openapi.json
-python3 -m json.tool openapi.json openapi.json   # pretty-print for reviewable diffs
-cd -
+# 3. Publish the APP's generated OpenAPI spec — not the gateway's synthesized one.
+#    Episode 10's Next.js app generates a rich spec (full request/response schemas)
+#    from its Zod schemas via `openapi-gen`. Copy that committed file in as
+#    openapi.json. In the app repo, `npm run openapi:snapshot` does this in one
+#    step (regenerate -> copy here -> set servers[].url to the gateway domain).
+cp <episode-10-app>/public/openapi.json \
+   providers/solana-foundation/weather-pro/openapi.json
 
-# 4. Validate the provider. This is the check you run most often.
+# 4. Finish providers/solana-foundation/weather-pro/PAY.md:
+#    - fill the TODO category (data) and use_case, set service_url to the domain
+#    - scaffold writes `openapi.url`, but the registry rejects URLs, so switch to
+#      `openapi.path: openapi.json` (the file you just copied in).
+
+# 5. Validate the provider. This is the check you run most often.
 pay catalog check providers/solana-foundation/weather-pro/PAY.md
 
-# 5. Optional: walk the whole registry without live probes.
+# 6. Optional: walk the whole registry without live probes.
 pay catalog check . --no-probe
 ```
 

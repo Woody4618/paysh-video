@@ -7,3 +7,8 @@
 *.tsbuildinfo
 next-env.d.ts
 .vercel
+
+# next-openapi-gen build cache (absolute machine paths + per-run timings).
+# The config (openapi-gen.config.ts) and output (public/openapi.json) are the
+# artifacts worth committing; this manifest is regenerated on every run.
+/.openapi-gen

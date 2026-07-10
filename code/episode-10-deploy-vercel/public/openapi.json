@@ -120,8 +120,8 @@
   ],
   "servers": [
     {
-      "url": "https://paysh-video-gateway.vercel.app",
-      "description": "Production gateway"
+      "url": "",
+      "description": "API server"
     }
   ],
   "components": {

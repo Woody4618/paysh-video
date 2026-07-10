@@ -29,10 +29,26 @@ pull request away. Lets publish the weather PRO api together!
 
 ### Scene 2 — The gateway is already live (0:20–0:55)
 
-- 🎙️ "One requirement first: the catalog only lists gateways reachable on a public
-  HTTPS domain — `service_url` can't be localhost. Ours is already there: Episode
-  10 put Weather Pro on Vercel at `paysh-video-gateway.vercel.app`. Let me prove
-  it's live and serving an OpenAPI doc before I list it."
+- Two requirements the public gate way 
+https://paysh-video-gateway.vercel.app/openapi.json
+And our api 
+https://paysh-video.vercel.app/ 
+
+- Show the open api spec from our API and the gateway. 
+
+- Scafold the pay.sh catalog in the pay skills repo 
+- Adjust the PAY.md to fit the needs. 
+- Copy over the openapi.json from our API to the pay.sh catalog. Its created via ZOD and already creates the correct openapi spec where the titles are correct above 25 letters for example. Just health check would not pass the verification. 
+- Check the pay.sh catalog check. 
+- open PR 
+- Review PR 
+<Break> 
+- Show PR probe 
+- Explain what paysh does with the two files 
+- Show the pay skills search and show commands
+
+
+
 - 🖥️ Lower-third: `service_url must be a live public domain`
 - ⌨️ You run:
 
@@ -40,23 +56,21 @@ pull request away. Lets publish the weather PRO api together!
 # The gateway from Episode 10 — free endpoints answer without payment.
 curl -fsS https://paysh-video-gateway.vercel.app/health
 curl -fsS https://paysh-video-gateway.vercel.app/locations
-
-# It also serves an OpenAPI doc the catalog can read.
-curl -fsS https://paysh-video-gateway.vercel.app/openapi.json | jq '.info.title'
 ```
 
-- 🎙️ "Health and locations answer for free, and the gateway serves its own
-  `/openapi.json` — that's the document the catalog scaffolder reads. In
-  production the fee-payer signer is a KMS-backed key and secrets come from the
-  platform's env vars, exactly as we set up in Episode 10. Now let's list it."
+- 🎙️ "Health and locations answer for free — the paywall only kicks in on
+  `forecast`. In production the fee-payer signer is a KMS-backed key and secrets
+  come from the platform's env vars, exactly as we set up in Episode 10. Now let's
+  list it."
 
-### Scene 3 — Scaffold + finish the entry (0:55–1:35)
+### Scene 3 — Scaffold + drop in the app's OpenAPI (0:55–1:40)
 
-- 🎙️ "I fork and clone the registry, then let pay scaffold a provider entry
-  straight from our gateway's live OpenAPI document. The leaf of the name —
-  `weather-pro` — becomes the `name:` field and the directory it lands in.
-  Scaffold fetches the spec over the network, so the URL has to be live — and ours
-  is, from Episode 10."
+- 🎙️ "I fork and clone the registry, then let pay scaffold the entry. The leaf of
+  the name — `weather-pro` — becomes the `name:` field and the directory it lands
+  in. Scaffold just needs *an* OpenAPI URL to read the title and endpoint list
+  from, so I point it at the live gateway. But scaffold is only bootstrapping the
+  `PAY.md` skeleton — the spec I actually publish is the richer one my Next.js app
+  already generates."
 - 🖥️ Lower-third: `pay catalog scaffold <fqn> <openapi-url>`
 - ⌨️ You run:
 
@@ -64,34 +78,39 @@ curl -fsS https://paysh-video-gateway.vercel.app/openapi.json | jq '.info.title'
 git clone git@github.com:<you>/pay-skills.git
 cd pay-skills
 
-# Point scaffold at OUR deployed gateway's /openapi.json (from Episode 10).
+# Scaffold the PAY.md skeleton. The URL just seeds title + endpoints.
 pay catalog scaffold solana-foundation/weather-pro \
   https://paysh-video-gateway.vercel.app/openapi.json \
   --output-dir providers
 ```
 
-- 🎙️ "Scaffold pre-fills the title and description from the live spec, but three
-  things still need me. It references the spec by `openapi.url`, and the registry
-  won't accept a URL — so I snapshot the spec next to the file and switch the field
-  to `openapi.path`. I fill in the `category` and the `use_case` it left as TODO.
-  And I set `service_url` to our gateway's real domain. The finished result is the
-  `weather-pro` listing in the companion folder."
+- 🎙️ "Now the key move. Back in Episode 10 my Next.js app describes its own API
+  with Zod schemas, and `openapi-gen` turns those into a full OpenAPI document —
+  request params, response bodies, the works — far richer than the gateway's
+  auto-synthesized one. I copy *that* generated spec into the listing. In the app
+  repo it's a one-liner — `npm run openapi:snapshot` regenerates it and copies it
+  straight into this provider folder. Here I'll just show the copy."
 - ⌨️ You run:
 
 ```sh
-cd providers/solana-foundation/weather-pro
-curl -fsSL https://paysh-video-gateway.vercel.app/openapi.json -o openapi.json
-python3 -m json.tool openapi.json openapi.json   # pretty-print for reviewable diffs
-# then in PAY.md: set category (data) + use_case + service_url
-#   (https://paysh-video-gateway.vercel.app), and replace
-#   openapi:\n  url: …   with   openapi:\n  path: openapi.json
+# Copy the app's GENERATED OpenAPI spec into the listing (the rich one with
+# full request/response schemas). In the Episode 10 app repo this is:
+#   npm run openapi:snapshot   # regenerate + copy here + set servers[].url
+cp <episode-10-app>/public/openapi.json \
+   providers/solana-foundation/weather-pro/openapi.json
 ```
 
+- 🎙️ "Then I finish the `PAY.md`: scaffold leaves `use_case` and `category` as
+  TODO and references the spec by `openapi.url`, but the registry won't accept a
+  URL — so I switch it to `openapi.path: openapi.json`, the file I just copied in.
+  I fill the `category` (`data`) and a real `use_case`, and set `service_url` to
+  our gateway's domain. The finished result is the `weather-pro` listing in the
+  companion folder."
 - 🖥️ Show the finished `PAY.md`: frontmatter (`name: weather-pro`, `title`,
   `description`, `use_case`, `category: data`, `service_url`, `openapi.path`) + the
   prose body, with the committed `openapi.json` sitting beside it.
 
-### Scene 4 — Check it, fix the real spec, re-check (1:35–2:35)
+### Scene 4 — Check it and open the PR (1:40–2:35)
 
 - 🎙️ "The one command I run most is `pay catalog check`. It parses the frontmatter,
   resolves the OpenAPI spec, and gives a verdict — all read-only. Let me run the
@@ -103,54 +122,47 @@ python3 -m json.tool openapi.json openapi.json   # pretty-print for reviewable d
 pay catalog check providers/solana-foundation/weather-pro/PAY.md --no-probe
 ```
 
-- 🖥️ Show the REAL warnings/errors it prints on the scaffolded spec:
-
-```text
-│ - GET /health: operation summary too short (19 chars, min 24)
-│     got: "Health check. Free."
-│ - GET /locations: operation summary contains marketing language `free`
-│ - GET /forecast: operation summary should start with an action verb
-│     got: "Current + 7-day forecast for a location. $0.01 per request."
-```
-
-- 🎙️ "And it fails — three of them. Now, here's the important part: I did **not**
-  hand-write this OpenAPI. The gateway synthesized it from my `provider.yml`, and
-  each operation's `summary` is literally the endpoint's `description`. So the
-  catalog is really complaining about my *server spec*: the summaries are too
-  short, start with a noun, and shout `Free` and `$0.01` — which the catalog bans,
-  because that text becomes the reason line on the payer's Touch ID prompt."
-- 🎙️ "So I don't patch the snapshot — that would just drift from what the gateway
-  serves. I fix the source, back in Episode 10's `provider.yml`."
-- ⌨️ Edit `provider.yml` descriptions to be verb-first, 24–63 chars, no cost words:
-
-```yaml
-endpoints:
-  - { method: GET, path: 'health',    description: 'Check gateway health and readiness status' }
-  - { method: GET, path: 'locations', description: 'List supported forecast locations by name' }
-  - { method: GET, path: 'forecast',  description: 'Fetch current and 7-day forecast for a city', ... }
-```
-
-- ⌨️ Redeploy the gateway, then re-snapshot and re-check:
+- 🖥️ Show the clean pass: `PAY.md check successful`.
+- 🎙️ "Green on the first pass — and that's not luck. Because my spec is generated
+  from the app's Zod schemas, each operation's `summary` is already a real
+  sentence: verb-first, the right length, no marketing words. The catalog is
+  strict about summaries because that text becomes the reason line on the payer's
+  Touch ID prompt — 24 to 63 characters, starts with an action verb, no `Free` or
+  `$0.01`. If it *had* complained, I wouldn't patch the snapshot by hand — I'd fix
+  the description back in the app's route and re-run `npm run openapi:snapshot`, so
+  the published spec never drifts from the code."
+- ⌨️ Now the live pass:
 
 ```sh
-# 1. push provider.yml + redeploy the gateway (Vercel picks up the new spec)
-git commit -am "catalog-friendly endpoint summaries" && git push
-
-# 2. re-pull the now-clean synthesized spec into the listing
-cd providers/solana-foundation/weather-pro
-curl -fsSL https://paysh-video-gateway.vercel.app/openapi.json -o openapi.json
-python3 -m json.tool openapi.json openapi.json
-
-# 3. re-run the check — now green
-pay catalog check providers/solana-foundation/weather-pro/PAY.md --no-probe
+# Drop --no-probe: this calls the deployed gateway endpoint by endpoint.
 pay catalog check providers/solana-foundation/weather-pro/PAY.md -v
 ```
 
-- 🎙️ "Redeploy, re-pull the spec, re-check — green. Drop `--no-probe` and add `-v`
-  for the live pass: it calls the deployed gateway and shows, endpoint by endpoint,
-  whether each returns a valid Solana 402 in USDC or USDT — `forecast` returns the
-  challenge, `health` and `locations` are free. That same command is what PR CI
-  runs, so if it's green locally, it's green in CI."
+- 🖥️ Show the probe table + verdict:
+
+```text
+Probe results
+providers/solana-foundation/weather-pro FAIL
+  GET forecast     OK   402 mpp   USDC
+  GET health       FAIL expected 402, got 200
+  GET locations    FAIL expected 402, got 200
+
+Solana-compat verdict
+PASS   providers/solana-foundation/weather-pro (1/1)
+  OK   GET forecast   paid via mpp (ok)
+  FREE GET health     free / not gated
+  FREE GET locations  free / not gated
+│ PAY.md check successful — 1/1 gates compatible with Solana
+```
+
+- 🎙️ "Don't let those red lines spook you. The probe *expects* a 402 on every
+  endpoint, so it flags `health` and `locations` when they answer 200 — then it
+  reclassifies them as free, because our listing marks them with no pricing. Only
+  `forecast` has to return a challenge, and it does: a valid Solana 402 in USDC.
+  So the verdict is `PASS`, one of one gates compatible. Notice the *price* itself
+  comes from that live probe, not from my committed spec — I never hand-write
+  pricing into the JSON. This is exactly what PR CI runs, so green locally means
+  green in CI."
 - 🖥️ Open the PR on solana-foundation/pay-skills. After merge:
 
 ```sh
@@ -173,7 +185,9 @@ pay skills show solana-foundation/weather-pro
 
 - 📂 solana-foundation/pay-skills — the open registry (`providers/<fqn>/PAY.md`)
 - 🌦️ Publishing the Episode 10 Weather Pro gateway (`paysh-video-gateway.vercel.app`)
-- 🏗️ `pay catalog scaffold <fqn> <openapi-url>` — generate the entry from OpenAPI
+- 🏗️ `pay catalog scaffold <fqn> <openapi-url>` — bootstrap the `PAY.md` skeleton
+- 📄 Publish the app's generated OpenAPI (`openapi-gen` → `openapi.path`), not the
+  gateway's synthesized one
 - ✅ `pay catalog check providers/<fqn>/PAY.md` — the check you run most
 - 🔎 `pay skills search` / `pay skills show` confirm discovery after merge
 
@@ -208,13 +222,21 @@ pay skills show solana-foundation/weather-pro
   succeeds on camera.
 - **Scaffold emits `openapi.url` + TODOs, and the registry rejects URLs:** the
   generated `PAY.md` has `openapi:\n  url: <gateway>/openapi.json` and leaves
-  `use_case`/`category` as `TODO`. Before publishing you must (a) snapshot the
-  spec into the provider dir (`curl -fsSL <url> -o openapi.json`, pretty-printed)
-  and switch the field to `openapi.path`, (b) fill the two TODO fields
-  (`category: data`, plus the weather `use_case`), and (c) set `service_url` to
-  `https://paysh-video-gateway.vercel.app`. Tiny specs can use inline
-  `openapi.content` instead. The committed `weather-pro` listing is the finished
-  result.
+  `use_case`/`category` as `TODO`. Before publishing you must (a) put the spec next
+  to `PAY.md` as `openapi.json` and switch the field to `openapi.path`, (b) fill
+  the two TODO fields (`category: data`, plus the weather `use_case`), and (c) set
+  `service_url` to `https://paysh-video-gateway.vercel.app`. Tiny specs can use
+  inline `openapi.content` instead. The committed `weather-pro` listing is the
+  finished result.
+- **The committed `openapi.json` is the APP's GENERATED spec, not the gateway's.**
+  The public gateway URL (`…/openapi.json`) serves the gateway's *minimal*
+  auto-synthesized doc — 3 paths, no component schemas. The listing instead
+  publishes the richer document the Episode 10 Next.js app generates from its Zod
+  schemas via `openapi-gen` (full request params + response bodies). We copy that
+  committed `public/openapi.json` into the provider dir; the app repo's
+  `npm run openapi:snapshot` does exactly this (regenerate → copy here → set
+  `servers[].url` to the gateway domain). Do **not** `curl` the gateway for the
+  listing's spec — that would publish the thin synthesized version.
 - **`service_url` must be a live public domain — ours already is.** The catalog
   probe in `pay catalog check` hits `service_url`; localhost won't do. Episode 10
   deployed Weather Pro as a container (`ghcr.io/solana-foundation/pay:latest`) on
@@ -235,16 +257,17 @@ pay skills show solana-foundation/weather-pro
   biometric payment prompt; the OS truncates at 64 chars. `pay catalog check`
   errors on out-of-range length / marketing language and warns on a non-verb
   opener.
-- **The synthesized summary IS the `provider.yml` `description`.** When the gateway
-  has no `--openapi` doc (our "normal flow"), it synthesizes `/openapi.json` from
-  the spec and sets each operation's `summary` to that endpoint's `description:`
-  verbatim (`core/src/server/openapi.rs`: `op.insert("summary", desc)`). So a
-  catalog summary failure is really a **server-spec** failure — fix the
-  `description:` fields in `provider.yml` and redeploy, don't hand-patch the
-  snapshot (patching drifts from what the gateway actually serves). Episode 10's
-  `provider.yml` now uses catalog-clean descriptions: "Check gateway health and
-  readiness status", "List supported forecast locations by name", "Fetch current
-  and 7-day forecast for a city" (all verb-first, 24–63 chars, no "free"/"$0.01").
+- **Summaries come from the app's Zod/JSDoc, so fix drift at the source.** Our
+  published spec is generated by `openapi-gen` from the Next.js routes, where each
+  operation's `summary` is the JSDoc title on the handler (e.g.
+  `Fetch current conditions and 7-day forecast for a location`). These already
+  satisfy the catalog rules. If `pay catalog check` ever flags a summary, fix the
+  JSDoc/Zod in the Episode 10 route and re-run `npm run openapi:snapshot` — never
+  hand-patch the committed `openapi.json`, or it drifts from the code. (This is a
+  change from earlier drafts, which fixed `provider.yml` `description:` fields
+  because the listing used to publish the gateway's *synthesized* spec. The listing
+  now publishes the app's generated spec, so the source of truth is the route
+  JSDoc, not `provider.yml`.)
 - **Use `openapi.path` (authoritative).** The published publish-to-pay-skills doc
   is explicit and consistent in three places: "reference them with `openapi.path`.
   Do not publish `openapi.url`", "the public registry rejects `openapi.url`", and

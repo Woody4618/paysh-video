@@ -4,6 +4,10 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "openapi": "openapi-gen generate",
+    "openapi:watch": "openapi-gen generate --watch",
+    "openapi:snapshot": "openapi-gen generate && node scripts/snapshot-catalog-openapi.mjs",
+    "prebuild": "openapi-gen generate",
     "build": "next build",
     "start": "next start",
     "gateway:build": "docker build -f Dockerfile.vercel -t weather-pro-gateway:local .",
@@ -12,7 +16,8 @@
   "dependencies": {
     "next": "15.5.20",
     "react": "19.1.0",
-    "react-dom": "19.1.0"
+    "react-dom": "19.1.0",
+    "zod": "^4.4.3"
   },
   "overrides": {
     "postcss": "^8.5.10"
@@ -20,6 +25,7 @@
   "devDependencies": {
     "@types/node": "^22.0.0",
     "@types/react": "^19.0.0",
+    "next-openapi-gen": "^1.6.0",
     "typescript": "^5.6.0"
   }
 }

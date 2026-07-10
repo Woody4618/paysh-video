@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server.js";
+import { NextRequest, NextResponse } from "next/server";
 import { buildForecast, listLocations, resolveLocation } from "../locations-data";
 
 // This is the ACTUAL API — the thing callers are paying for.
@@ -8,6 +8,11 @@ import { buildForecast, listLocations, resolveLocation } from "../locations-data
 // provider.yml as routing.auth), and this route rejects anything without it.
 // That's what stops someone from skipping the paywall by hitting
 // /api/forecast directly.
+//
+// OpenAPI: the referenced schemas (ForecastQuery, ForecastResponse,
+// PaymentRequired, UnknownLocationResponse) live in app/api/schemas.ts —
+// route.ts files may only export handlers + config, so schemas live elsewhere.
+// `openapi-gen` resolves them by name from the JSDoc tags below.
 
 export const dynamic = "force-dynamic";
 
@@ -18,6 +23,14 @@ function unauthorized() {
   );
 }
 
+/**
+ * Fetch current conditions and 7-day forecast for a location
+ * @queryParams ForecastQuery
+ * @response 200:ForecastResponse:Current conditions and 7-day forecast
+ * @response 402:PaymentRequired:Payment required — pay through the gateway
+ * @response 404:UnknownLocationResponse:Requested location is not supported
+ * @openapi
+ */
 export async function GET(req: NextRequest) {
   const expected = process.env.GATEWAY_SHARED_SECRET;
 
